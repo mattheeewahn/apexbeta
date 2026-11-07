@@ -1,0 +1,21 @@
+# systemd unit: keeps APEX running and starts it automatically when the Pi boots.
+# Install (adjust the two paths/user if your folder or username differ):
+#   sudo cp apex.service /etc/systemd/system/apex.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now apex
+# Logs:    journalctl -u apex -f
+# Restart: sudo systemctl restart apex
+[Unit]
+Description=APEX server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/apex
+ExecStart=/bin/bash /home/pi/apex/start.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,44 @@
+﻿Last Updated: *Nov 7th, 2026*
+
+Welcome to APEX, a social networking platform developed by Prototype Neo Industries. By creating an account and using APEX, you agree to comply with and be bound by the following Terms of Service and Privacy Policy. Please read them carefully before using the platform.
+
+##**1. About APEX**
+APEX is a social networking website that helps people from different countries meet, make friends, and share cultures in a safe and engaging environment. Users must be at least 14 years old and verify their email address to register.
+Users can:
+
+    1. Create their own personal accounts,
+
+    2. Publicly share posts, and
+
+    3. Send private messages to other users.
+
+##**2. Privacy Policy**
+APEX requires users to provide limited personal information — specifically, name, email address, date of birth, and nationality — during registration.
+We do not collect any personal information beyond what is listed on the website. Your email address is never shown to other users.
+This information is used only to provide the most suitable and secure environment for our users, such as verifying accounts, enforcing the minimum age, and customizing the platform experience. We do not sell, share, or distribute personal data to third parties.
+
+##**3. Content Monitoring & Moderator Rights**
+To maintain a safe and respectful community, APEX moderators and administrators reserve the right to review posts or private messages if they are:
+Reported by users, or
+Flagged as potentially harmful, illegal, or likely to start community issues.
+This is done solely to protect the community, not for surveillance.
+
+##**4. Content Removal and Account Actions**
+APEX reserves the right to:
+Remove any content that violates these Terms, community guidelines, or applicable laws;
+Suspend or permanently ban accounts that repeatedly violate policies, engage in harmful behavior, or threaten the safety of others.
+Decisions made by moderators and admins are final.
+
+##**5. User Safety & Responsibility**
+While APEX takes steps to create a secure platform, your personal safety online ultimately depends on your actions.
+Never share your password or sensitive information, even with people you think you know.
+Exercise caution when interacting with others.
+APEX is not responsible for any negative consequences that result from users trusting others or sharing information irresponsibly.
+If you encounter suspicious activity, report it immediately through the platform’s reporting tools.
+
+##**6. Updates to These Terms**
+We may revise these Terms of Service periodically. Changes will be communicated through the platform, and continued use of APEX after updates constitutes acceptance of the new Terms.
+
+##**7. Contact**
+For any questions, concerns, or reports, please contact us at:
+ 📧 support@prototype-neo.com

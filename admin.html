@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>APEX Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>
+  :root {
+    --bg: #f5f6fa; --panel: #fff; --text: #1d2330; --muted: #5b6475; --line: #e3e6ee;
+    --accent: #2f6fed; --danger: #d43c3c; --ok: #1f9d55; --warn: #c27c0e; --gold: #c9a227;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  button, input, select, textarea { font: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+  nav.side { width: 220px; background: #141a26; color: #cfd6e4; padding: 20px 12px; flex-shrink: 0; }
+  nav.side h1 { font-size: 18px; color: #fff; margin: 0 8px 24px; display: flex; align-items: center; gap: 8px; }
+  nav.side h1 i { color: var(--gold); }
+  nav.side button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 4px;
+    background: none; border: 0; border-radius: 8px; color: inherit; cursor: pointer; text-align: left; }
+  nav.side button:hover { background: #222b3c; }
+  nav.side button[aria-current="page"] { background: var(--accent); color: #fff; }
+  nav.side .bottom { margin-top: 24px; border-top: 1px solid #2a3346; padding-top: 12px; }
+  main { flex: 1; padding: 28px; min-width: 0; }
+  main h2 { margin: 0 0 18px; font-size: 22px; }
+  .who { font-size: 13px; color: #8e98ab; margin: 0 8px 16px; word-break: break-all; }
+
+  /* Cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card .label { color: var(--muted); font-size: 13px; }
+  .card .value { font-size: 28px; font-weight: 700; margin-top: 6px; }
+  .card .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+  .panel h3 { margin: 0 0 12px; font-size: 16px; }
+
+  /* Tables */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center; }
+  .toolbar input, .toolbar select { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .toolbar input { min-width: 260px; }
+  .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #fafbfd; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  tr:last-child td { border-bottom: 0; }
+  td.wrap { max-width: 360px; word-break: break-word; }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; color: var(--muted); font-size: 14px; }
+
+  /* Badges & buttons */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .b-admin { background: #fff6d6; color: #8a6a00; border: 1px solid var(--gold); }
+  .b-moderator { background: #eceff4; color: #3c4658; }
+  .b-user { background: #eef3ff; color: #2c4fa3; }
+  .b-banned { background: #fde8e8; color: var(--danger); }
+  .b-incomplete { background: #fff3e0; color: var(--warn); }
+  .b-ok { background: #e6f6ec; color: var(--ok); }
+  .verified { color: #1d9bf0; margin-left: 4px; }
+  .btn { padding: 6px 10px; border-radius: 7px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .btn:hover { background: #f1f3f8; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #255bd0; }
+  .btn-danger { color: var(--danger); border-color: #f2c4c4; }
+  .btn-danger:hover { background: #fdeeee; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .actions select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; }
+
+  /* Login */
+  .login { max-width: 360px; margin: 12vh auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
+  .login h1 { margin: 0 0 6px; font-size: 22px; }
+  .login p { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .login label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  .login input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .login button { width: 100%; margin-top: 18px; padding: 11px; }
+  .error { color: var(--danger); font-size: 14px; margin-top: 10px; min-height: 1.2em; }
+
+  textarea { width: 100%; min-height: 140px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+  #toast { position: fixed; right: 20px; bottom: 20px; padding: 12px 16px; border-radius: 10px; color: #fff; background: #222;
+    box-shadow: 0 6px 24px rgba(0,0,0,.2); opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none; max-width: 360px; }
+  #toast.show { opacity: 1; transform: none; }
+  #toast.err { background: var(--danger); }
+  .bar { height: 8px; background: #eef1f7; border-radius: 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--accent); }
+  .nat-row { display: grid; grid-template-columns: 160px 1fr 40px; gap: 10px; align-items: center; font-size: 14px; margin: 6px 0; }
+
+  @media (max-width: 760px) {
+    .app { flex-direction: column; }
+    nav.side { width: 100%; display: flex; flex-wrap: wrap; gap: 4px; padding: 10px; }
+    nav.side h1, .who { width: 100%; margin-bottom: 8px; }
+    nav.side button { width: auto; }
+    nav.side .bottom { border: 0; margin: 0; padding: 0; }
+    main { padding: 16px; }
+    .toolbar input { min-width: 0; flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login (shown when not signed in as an admin) -->
+<section id="login-view" class="login" hidden aria-labelledby="login-title">
+  <h1 id="login-title"><i class="fas fa-shield-halved" aria-hidden="true"></i> APEX Admin</h1>
+  <p>Sign in with an administrator account.</p>
+  <form id="login-form">
+    <label for="login-id">Username or email</label>
+    <input id="login-id" autocomplete="username" required>
+    <label for="login-pw">Password</label>
+    <input id="login-pw" type="password" autocomplete="current-password" required>
+    <button class="btn btn-primary" type="submit">Sign in</button>
+    <div id="login-error" class="error" role="alert"></div>
+  </form>
+</section>
+
+<!-- Dashboard -->
+<div id="app-view" class="app" hidden>
+  <nav class="side" aria-label="Admin sections">
+    <h1><i class="fas fa-crown" aria-hidden="true"></i> APEX Admin</h1>
+    <div class="who" id="who"></div>
+    <button data-tab="overview" aria-current="page"><i class="fas fa-chart-line" aria-hidden="true"></i> Overview</button>
+    <button data-tab="users"><i class="fas fa-users" aria-hidden="true"></i> Users</button>
+    <button data-tab="lounges"><i class="fas fa-couch" aria-hidden="true"></i> Lounges</button>
+    <button data-tab="circuits"><i class="fas fa-layer-group" aria-hidden="true"></i> Circuits &amp; Posts</button>
+    <button data-tab="articles"><i class="fas fa-newspaper" aria-hidden="true"></i> Articles</button>
+    <button data-tab="announce"><i class="fas fa-bullhorn" aria-hidden="true"></i> Announcement</button>
+    <div class="bottom">
+      <button id="open-app"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> Open app</button>
+      <button id="logout"><i class="fas fa-right-from-bracket" aria-hidden="true"></i> Sign out</button>
+    </div>
+  </nav>
+
+  <main id="main" tabindex="-1">
+    <!-- Overview -->
+    <section data-view="overview">
+      <h2>Overview</h2>
+      <div class="grid" id="stat-cards"></div>
+      <div class="panel">
+        <h3>Top nationalities</h3>
+        <div id="nat-chart"></div>
+      </div>
+    </section>
+
+    <!-- Users -->
+    <section data-view="users" hidden>
+      <h2>Users</h2>
+      <div class="toolbar">
+        <label class="visually-hidden" for="user-q">Search users</label>
+        <input id="user-q" type="search" placeholder="Search username, name, email, nationality">
+        <label class="visually-hidden" for="user-status">Filter</label>
+        <select id="user-status">
+          <option value="all">All users</option>
+          <option value="admin">Admins</option>
+          <option value="moderator">Moderators</option>
+          <option value="user">Regular users</option>
+          <option value="banned">Banned</option>
+          <option value="incomplete">Unfinished Google sign-ups</option>
+        </select>
+        <button class="btn" id="user-refresh"><i class="fas fa-rotate" aria-hidden="true"></i> Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Users</caption>
+          <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Nationality</th><th scope="col">Rank</th><th scope="col">Status</th><th scope="col">Joined</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="user-rows"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span id="user-pageinfo"></span>
+        <button class="btn" id="user-prev" aria-label="Previous page"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+        <button class="btn" id="user-next" aria-label="Next page"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+      </div>
+    </section>
+
+    <!-- Lounges -->
+    <section data-view="lounges" hidden>
+      <h2>Lounges</h2>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Lounges</caption>
+          <thead><tr><th scope="col">Name</th><th scope="col">Owner</th><th scope="col">Privacy</th><th scope="col">Members</th><th scope="col">Created</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="lounge-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Circuits & Posts -->
+    <section data-view="circuits" hidden>
+      <h2>Circuits</h2>
+      <div class="table-wrap" style="margin-bottom:24px">
+        <table>
+          <caption class="visually-hidden">Circuits</caption>
+          <thead><tr><th scope="col">Title</th><th scope="col">Host</th><th scope="col">Owner</th><th scope="col">Posts</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="circuit-rows"></tbody>
+        </table>
+      </div>
+      <h2>Recent posts</h2>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Recent posts</caption>
+          <thead><tr><th scope="col">Post</th><th scope="col">Author</th><th scope="col">Circuit</th><th scope="col">Likes</th><th scope="col">Posted</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="post-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Articles -->
+    <section data-view="articles" hidden>
+      <h2>Articles</h2>
+      <p style="color:var(--muted);margin-top:-8px">Write new articles in the app. You can remove them here.</p>
+      <div class="table-wrap">
+        <table>
+          <caption class="visually-hidden">Articles</caption>
+          <thead><tr><th scope="col">Title</th><th scope="col">Author</th><th scope="col">Published</th><th scope="col">Actions</th></tr></thead>
+          <tbody id="article-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Announcement -->
+    <section data-view="announce" hidden>
+      <h2>Send announcement</h2>
+      <div class="panel">
+        <p style="color:var(--muted);margin-top:0">Sent as a direct message from the <strong>ANNOUNCEMENTS</strong> account to every active (not banned) user.</p>
+        <label for="announce-text" class="visually-hidden">Announcement message</label>
+        <textarea id="announce-text" maxlength="4000" placeholder="Write your announcement..."></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+          <span id="announce-count" style="color:var(--muted);font-size:13px">0 / 4000</span>
+          <button class="btn btn-primary" id="announce-send"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send to everyone</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+  let token = localStorage.getItem('apiToken');
+  let me = null;
+  let userPage = 1, userTotal = 0;
+  const PER_PAGE = 25;
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+
+  // The server stores user text HTML-escaped. Decode it for display, then insert ONLY as text.
+  function decode(s) {
+    if (s === null || s === undefined) return '';
+    const t = document.createElement('textarea');
+    t.innerHTML = String(s);
+    return t.value;
+  }
+  function el(tag, opts = {}, ...children) {
+    const e = document.createElement(tag);
+    if (opts.cls) e.className = opts.cls;
+    if (opts.text !== undefined) e.textContent = decode(opts.text);
+    if (opts.attrs) for (const [k, v] of Object.entries(opts.attrs)) e.setAttribute(k, v);
+    if (opts.on) for (const [k, v] of Object.entries(opts.on)) e.addEventListener(k, v);
+    for (const c of children) if (c) e.append(c);
+    return e;
+  }
+  const icon = (name) => el('i', { cls: `fas ${name}`, attrs: { 'aria-hidden': 'true' } });
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d) ? '—' : d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  let toastTimer;
+  function toast(msg, isErr = false) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = ''; }, 3200);
+  }
+  function emptyRow(tbody, cols, msg) {
+    tbody.replaceChildren(el('tr', {}, el('td', { cls: 'empty', text: msg, attrs: { colspan: String(cols) } })));
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      method: opts.method || 'GET',
+      headers: { 'Authorization': `Bearer ${token}`, ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+    if (res.status === 401) { showLogin('Your session expired. Please sign in again.'); throw new Error('unauthorized'); }
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  }
+  async function act(promise, okMsg, reload) {
+    try { await promise; toast(okMsg); if (reload) await reload(); }
+    catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }
+  }
+
+  // ---------- auth ----------
+  function showLogin(msg = '') {
+    $('app-view').hidden = true;
+    $('login-view').hidden = false;
+    $('login-error').textContent = msg;
+    $('login-id').focus();
+  }
+  async function boot() {
+    if (!token) return showLogin();
+    try {
+      const res = await fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } });
+      const data = await res.json();
+      if (!res.ok || data.needs_onboarding) return showLogin();
+      if (data.rank !== 'admin') return showLogin('This account is not an administrator.');
+      me = data;
+      $('who').textContent = `Signed in as ${decode(me.username)}`;
+      $('login-view').hidden = true;
+      $('app-view').hidden = false;
+      showTab('overview');
+    } catch (_) {
+      showLogin('Could not reach the server.');
+    }
+  }
+  $('login-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    $('login-error').textContent = '';
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('login-id').value.trim(), password: $('login-pw').value }),
+      });
+      const data = await res.json();
+      if (!res.ok) { $('login-error').textContent = data.error || 'Sign-in failed.'; return; }
+      if (data.user.rank !== 'admin') {
+        $('login-error').textContent = 'This account is not an administrator.';
+        fetch('/api/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` } });
+        return;
+      }
+      token = data.token;
+      localStorage.setItem('apiToken', token); // shared with the main app (same site)
+      $('login-pw').value = '';
+      boot();
+    } catch (_) { $('login-error').textContent = 'Could not reach the server.'; }
+  });
+  $('logout').addEventListener('click', async () => {
+    try { await fetch('/api/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }); } catch (_) {}
+    localStorage.removeItem('apiToken');
+    token = null;
+    showLogin();
+  });
+  $('open-app').addEventListener('click', () => { window.open('/', '_blank', 'noopener'); });
+
+  // ---------- tabs ----------
+  const loaders = { overview: loadOverview, users: loadUsers, lounges: loadLounges, circuits: loadCircuits, articles: loadArticles, announce: () => {} };
+  function showTab(name) {
+    document.querySelectorAll('nav.side button[data-tab]').forEach(b => {
+      if (b.dataset.tab === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('main section[data-view]').forEach(s => { s.hidden = s.dataset.view !== name; });
+    $('main').focus();
+    loaders[name]();
+  }
+  document.querySelectorAll('nav.side button[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  // ---------- overview ----------
+  async function loadOverview() {
+    try {
+      const s = await api('/api/admin/stats');
+      const cards = [
+        ['Users', s.users_total, `+${s.users_today} today · +${s.users_7d} this week`],
+        ['Banned', s.users_banned, `${s.users_incomplete} unfinished sign-ups`],
+        ['Staff', s.admins + s.moderators, `${s.admins} admin · ${s.moderators} moderator`],
+        ['Direct messages', s.dms_total, `${s.dms_today} in the last 24h`],
+        ['Lounges', s.lounges, `${s.lounge_messages} messages`],
+        ['Circuits', s.circuits, `${s.posts} posts`],
+        ['Articles', s.articles, ''],
+      ];
+      $('stat-cards').replaceChildren(...cards.map(([label, value, sub]) =>
+        el('div', { cls: 'card' }, el('div', { cls: 'label', text: label }), el('div', { cls: 'value', text: String(value) }),
+           sub ? el('div', { cls: 'sub', text: sub }) : null)));
+      const nats = s.top_nationalities;
+      if (!nats.length) { $('nat-chart').replaceChildren(el('p', { text: 'No data yet.', attrs: { style: 'color:var(--muted)' } })); return; }
+      const max = Math.max(...nats.map(n => n.count));
+      $('nat-chart').replaceChildren(...nats.map(n => {
+        const bar = el('div', { cls: 'bar', attrs: { role: 'img', 'aria-label': `${decode(n.nationality)}: ${n.count} users` } });
+        const fill = el('span'); fill.style.width = `${Math.round(n.count / max * 100)}%`; bar.append(fill);
+        return el('div', { cls: 'nat-row' }, el('span', { text: n.nationality }), bar, el('strong', { text: String(n.count) }));
+      }));
+    } catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }
+  }
+
+  // ---------- users ----------
+  function rankBadge(rank) { return el('span', { cls: `badge b-${rank}`, text: rank }); }
+  async function loadUsers() {
+    const tbody = $('user-rows');
+    const q = $('user-q').value.trim();
+    const status = $('user-status').value;
+    try {
+      const data = await api(`/api/admin/users?page=${userPage}&status=${encodeURIComponent(status)}&q=${encodeURIComponent(q)}`);
+      userTotal = data.total;
+      const pages = Math.max(1, Math.ceil(userTotal / PER_PAGE));
+      $('user-pageinfo').textContent = `${userTotal} users · page ${userPage} of ${pages}`;
+      $('user-prev').disabled = userPage <= 1;
+      $('user-next').disabled = userPage >= pages;
+      if (!data.users.length) return emptyRow(tbody, 7, 'No users found.');
+      tbody.replaceChildren(...data.users.map(userRow));
+    } catch (e) { if (e.message !== 'unauthorized') { toast(e.message, true); emptyRow(tbody, 7, 'Could not load users.'); } }
+  }
+  function userRow(u) {
+    const nameCell = el('td', { cls: 'wrap' },
+      el('strong', { text: u.username || '(no username yet)' }),
+      u.rank === 'admin' ? el('i', { cls: 'fas fa-check-circle verified', attrs: { 'aria-label': 'Verified admin', role: 'img' } }) : null,
+      el('br'), el('span', { text: u.fullName || '', attrs: { style: 'color:var(--muted);font-size:13px' } }),
+      u.provider === 'google' ? el('span', { text: ' · Google', attrs: { style: 'color:var(--muted);font-size:13px' } }) : null);
+    const statusCell = el('td');
+    if (u.is_banned) {
+      statusCell.append(el('span', { cls: 'badge b-banned', text: 'Banned' }));
+      if (u.ban_reason) statusCell.append(el('div', { text: u.ban_reason, attrs: { style: 'font-size:12px;color:var(--muted);margin-top:4px' } }));
+    } else if (!u.username) statusCell.append(el('span', { cls: 'badge b-incomplete', text: 'Unfinished' }));
+    else statusCell.append(el('span', { cls: 'badge b-ok', text: 'Active' }));
+
+    const actions = el('div', { cls: 'actions' });
+    if (u.is_me) {
+      actions.append(el('span', { text: 'This is you', attrs: { style: 'color:var(--muted);font-size:13px' } }));
+    } else {
+      const label = u.username || u.email;
+      const rankSel = el('select', { attrs: { 'aria-label': `Rank for ${decode(label)}` } });
+      for (const r of ['user', 'moderator', 'admin']) {
+        const o = el('option', { text: r, attrs: { value: r } }); if (r === u.rank) o.selected = true; rankSel.append(o);
+      }
+      rankSel.addEventListener('change', () => {
+        if (rankSel.value === 'admin' && !confirm(`Make ${decode(label)} an ADMIN? Admins have full control.`)) { rankSel.value = u.rank; return; }
+        act(api(`/api/admin/users/${u.id}/rank`, { method: 'POST', body: { rank: rankSel.value } }), 'Rank updated.', loadUsers);
+      });
+      actions.append(rankSel);
+      if (u.is_banned) {
+        actions.append(el('button', { cls: 'btn', text: 'Unban', on: { click: () =>
+          act(api(`/api/admin/users/${u.id}/unban`, { method: 'POST' }), 'User unbanned.', loadUsers) } }));
+      } else {
+        actions.append(el('button', { cls: 'btn btn-danger', text: 'Ban', on: { click: () => {
+          const reason = prompt(`Ban ${decode(label)}? Optional reason:`, '');
+          if (reason === null) return;
+          act(api(`/api/admin/users/${u.id}/ban`, { method: 'POST', body: { reason } }), 'User banned and logged out.', loadUsers);
+        } } }));
+      }
+      actions.append(el('button', { cls: 'btn', text: 'Log out', attrs: { title: 'End all of this user\u2019s sessions' }, on: { click: () =>
+        act(api(`/api/admin/users/${u.id}/logout`, { method: 'POST' }), 'Sessions ended.') } }));
+    }
+    return el('tr', {}, nameCell, el('td', { cls: 'wrap', text: u.email }), el('td', { text: u.nationality || '—' }),
+      el('td', {}, rankBadge(u.rank)), statusCell, el('td', { text: fmtDate(u.created_at) }), el('td', {}, actions));
+  }
+  let searchTimer;
+  $('user-q').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { userPage = 1; loadUsers(); }, 300); });
+  $('user-status').addEventListener('change', () => { userPage = 1; loadUsers(); });
+  $('user-refresh').addEventListener('click', loadUsers);
+  $('user-prev').addEventListener('click', () => { if (userPage > 1) { userPage--; loadUsers(); } });
+  $('user-next').addEventListener('click', () => { userPage++; loadUsers(); });
+
+  // ---------- lounges ----------
+  async function loadLounges() {
+    const tbody = $('lounge-rows');
+    try {
+      const rows = await api('/api/admin/lounges');
+      if (!rows.length) return emptyRow(tbody, 6, 'No lounges yet.');
+      tbody.replaceChildren(...rows.map(l => el('tr', {},
+        el('td', { cls: 'wrap' }, el('strong', { text: l.name }), l.description ? el('div', { text: l.description, attrs: { style: 'color:var(--muted);font-size:13px' } }) : null),
+        el('td', { text: l.owner || '—' }), el('td', { text: l.privacy }), el('td', { text: String(l.members) }),
+        el('td', { text: fmtDate(l.created_at) }),
+        el('td', {}, el('button', { cls: 'btn btn-danger', text: 'Delete', on: { click: () => {
+          if (!confirm(`Delete lounge "${decode(l.name)}" with all its channels and messages? This cannot be undone.`)) return;
+          act(api(`/api/admin/lounges/${l.id}`, { method: 'DELETE' }), 'Lounge deleted.', loadLounges);
+        } } })))));
+    } catch (e) { if (e.message !== 'unauthorized') { toast(e.message, true); emptyRow(tbody, 6, 'Could not load lounges.'); } }
+  }
+
+  // ---------- circuits & posts ----------
+  async function loadCircuits() {
+    const ct = $('circuit-rows'), pt = $('post-rows');
+    try {
+      const [circuits, posts] = await Promise.all([api('/api/admin/circuits'), api('/api/admin/posts')]);
+      if (!circuits.length) emptyRow(ct, 5, 'No circuits yet.');
+      else ct.replaceChildren(...circuits.map(c => el('tr', {},
+        el('td', { cls: 'wrap' }, el('strong', { text: c.title })), el('td', { text: c.host || '—' }), el('td', { text: c.owner || '—' }),
+        el('td', { text: String(c.posts) }),
+        el('td', {}, el('button', { cls: 'btn btn-danger', text: 'Delete', on: { click: () => {
+          if (!confirm(`Delete circuit "${decode(c.title)}" and its ${c.posts} posts? This cannot be undone.`)) return;
+          act(api(`/api/admin/circuits/${c.id}`, { method: 'DELETE' }), 'Circuit deleted.', loadCircuits);
+        } } })))));
+      if (!posts.length) emptyRow(pt, 6, 'No posts yet.');
+      else pt.replaceChildren(...posts.map(p => el('tr', {},
+        el('td', { cls: 'wrap', text: (p.text || '') + (p.has_image ? '  [image]' : '') }), el('td', { text: p.author || '—' }),
+        el('td', { text: p.circuit || '—' }), el('td', { text: String(p.likes) }), el('td', { text: fmtDate(p.created_at) }),
+        el('td', {}, el('button', { cls: 'btn btn-danger', text: 'Delete', on: { click: () => {
+          if (!confirm('Delete this post? This cannot be undone.')) return;
+          act(api(`/api/admin/posts/${p.id}`, { method: 'DELETE' }), 'Post deleted.', loadCircuits);
+        } } })))));
+    } catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }
+  }
+
+  // ---------- articles ----------
+  async function loadArticles() {
+    const tbody = $('article-rows');
+    try {
+      const rows = await api('/api/admin/articles');
+      if (!rows.length) return emptyRow(tbody, 4, 'No articles yet.');
+      tbody.replaceChildren(...rows.map(a => el('tr', {},
+        el('td', { cls: 'wrap' }, el('strong', { text: a.title })), el('td', { text: a.author || '—' }), el('td', { text: fmtDate(a.created_at) }),
+        el('td', {}, el('button', { cls: 'btn btn-danger', text: 'Delete', on: { click: () => {
+          if (!confirm(`Delete article "${decode(a.title)}"? This cannot be undone.`)) return;
+          act(api(`/api/admin/articles/${a.id}`, { method: 'DELETE' }), 'Article deleted.', loadArticles);
+        } } })))));
+    } catch (e) { if (e.message !== 'unauthorized') { toast(e.message, true); emptyRow(tbody, 4, 'Could not load articles.'); } }
+  }
+
+  // ---------- announcement ----------
+  $('announce-text').addEventListener('input', () => { $('announce-count').textContent = `${$('announce-text').value.length} / 4000`; });
+  $('announce-send').addEventListener('click', async () => {
+    const message = $('announce-text').value.trim();
+    if (!message) return toast('Write a message first.', true);
+    if (!confirm('Send this announcement to every user?')) return;
+    const btn = $('announce-send');
+    btn.disabled = true;
+    try {
+      const r = await api('/api/admin/broadcast', { method: 'POST', body: { message } });
+      toast(`Sent to ${r.sent} users.`);
+      $('announce-text').value = ''; $('announce-count').textContent = '0 / 4000';
+    } catch (e) { if (e.message !== 'unauthorized') toast(e.message, true); }
+    finally { btn.disabled = false; }
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
