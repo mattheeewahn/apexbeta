@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EIA — Electron International Airport | Atomic Terminal Operations</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<!-- STARTUP SEQUENCE -->
+<div id="startup" class="startup" aria-hidden="true">
+  <div class="startup-inner">
+    <div class="startup-mark">EIA</div>
+    <div class="startup-sub">ELECTRON INTERNATIONAL AIRPORT</div>
+    <div class="startup-bar"><span id="startupProgress"></span></div>
+    <div class="startup-status" id="startupStatus">INITIALIZING TERMINAL SYSTEMS</div>
+  </div>
+</div>
+
+<!-- TOP NAVIGATION -->
+<header class="topbar" id="topbar">
+  <div class="brand">
+    <span class="brand-mark">EIA</span>
+    <span class="brand-name">ELECTRON INTERNATIONAL AIRPORT</span>
+  </div>
+  <nav class="mainnav" id="mainnav" aria-label="Primary">
+    <a href="#operations" data-nav="operations">OPERATIONS</a>
+    <a href="#atoms" data-nav="atoms">ATOMS</a>
+    <a href="#terminals" data-nav="terminals">TERMINALS</a>
+    <a href="#boarding" data-nav="boarding">BOARDING</a>
+    <div class="nav-group">
+      <button class="nav-group-btn" aria-haspopup="true" aria-expanded="false">LABS ▾</button>
+      <div class="nav-drop">
+        <a href="#energy" data-nav="energy">Energy Lab</a>
+        <a href="#spectroscopy" data-nav="spectroscopy">Spectroscopy</a>
+        <a href="#ions" data-nav="ions">Ion Control</a>
+        <a href="#quantum" data-nav="quantum">Quantum Records</a>
+        <a href="#airportmap" data-nav="airportmap">Airport Map</a>
+        <a href="#booking" data-nav="booking">Booking</a>
+        <a href="#cabin" data-nav="cabin">Cabin</a>
+        <a href="#flights" data-nav="flights">Flights</a>
+        <a href="#radar" data-nav="radar">Radar</a>
+      </div>
+    </div>
+    <a href="#tower" data-nav="tower">CONTROL TOWER</a>
+    <div class="nav-group">
+      <button class="nav-group-btn" aria-haspopup="true" aria-expanded="false">TRAINING ▾</button>
+      <div class="nav-drop">
+        <a href="#gatelab" data-nav="gatelab">Gate Assignment Lab</a>
+        <a href="#challenge" data-nav="challenge">Controller Challenge</a>
+        <a href="#checkin" data-nav="checkin">Check-in</a>
+        <a href="#journey" data-nav="journey">Journey</a>
+        <a href="#knowledge" data-nav="knowledge">Knowledge Check</a>
+        <a href="#cert" data-nav="cert">Certificate</a>
+      </div>
+    </div>
+  </nav>
+  <div class="global-search">
+    <input type="search" id="globalSearch" placeholder="Search EIA" aria-label="Search EIA" autocomplete="off" />
+    <div class="search-results" id="searchResults" hidden></div>
+  </div>
+  <div class="atom-badge">
+    <div class="atom-badge-el" id="navAtom">OXYGEN / O</div>
+    <div class="atom-badge-meta"><span id="navElectronCount">08 ELECTRONS</span></div>
+    <div class="atom-badge-state" id="navState">GROUND STATE</div>
+  </div>
+  <button class="navtoggle" id="navtoggle" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- GLOBAL ANNOUNCEMENT BAR -->
+<div class="announce-bar" id="announceBar" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<main>
+<!-- OPENING / ENTRANCE DISPLAY -->
+<section id="operations" class="section entrance" data-section="operations">
+  <div class="entrance-grid">
+    <div class="entrance-headline">
+      <div class="entrance-mark">EIA</div>
+      <h1>ELECTRON INTERNATIONAL AIRPORT</h1>
+      <p class="entrance-tag">ATOMIC TERMINAL OPERATIONS</p>
+    </div>
+    <div class="entrance-stats">
+      <div class="stat">
+        <span class="stat-label">CURRENT ATOM</span>
+        <span class="stat-value flip" id="entranceAtom" data-flip="OXYGEN / O">OXYGEN / O</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">ATOMIC NO.</span>
+        <span class="stat-value mono" id="entranceZ">08</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">PASSENGERS</span>
+        <span class="stat-value mono" id="entrancePassengers">08 ELECTRONS</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">CONFIGURATION</span>
+        <span class="stat-value mono" id="entranceConfig">1s² 2s² 2p⁴</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">SYSTEM STATE</span>
+        <span class="stat-value" id="entranceState" data-state="ground">GROUND STATE</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">FACILITY CODE</span>
+        <span class="stat-value mono" id="entranceFacility">EIA-ATOM-008</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIDS DEPARTURE PANEL -->
+  <div class="fids-panel">
+    <div class="fids-head">
+      <span class="fids-title">ELECTRON MOVEMENT / GATE ASSIGNMENT</span>
+      <span class="fids-clock mono" id="opsClock">T2-P03 · EIA</span>
+    </div>
+    <div class="table-scroll">
+      <table class="fids-table" id="electronTable">
+        <thead>
+          <tr>
+            <th>ID</th><th>TERMINAL</th><th>SECTION</th><th>GATE</th>
+            <th>SPIN</th><th>ENERGY</th><th>STATE</th>
+          </tr>
+        </thead>
+        <tbody><!-- populated by JS --></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="entrance-actions">
+    <button class="btn btn-primary" data-scroll="terminals">OPEN TERMINAL MAP</button>
+    <button class="btn btn-ghost" data-scroll="passengers">VIEW OPERATIONS</button>
+  </div>
+</section>
+
+<!-- TERMINAL MAP -->
+<section id="terminals" class="section" data-section="terminals">
+  <div class="section-head">
+    <h2>TERMINAL MAP</h2>
+    <p class="section-desc">Energy increases upward. Terminals are principal energy levels (n). Concourses are subshells. Gates are orbitals.</p>
+  </div>
+
+  <div class="map-layout">
+    <div class="map-energy-axis" aria-hidden="true">
+      <span>HIGH ENERGY ↑</span>
+      <span class="axis-line"></span>
+      <span>LOW ENERGY ↓</span>
+    </div>
+
+    <div class="terminal-map" id="terminalMap">
+      <!-- Terminal 4 -->
+      <div class="terminal" data-terminal="4">
+        <div class="terminal-label">
+          <span class="terminal-name">TERMINAL 4</span>
+          <span class="terminal-n mono">n = 4</span>
+        </div>
+        <div class="concourse-row">
+          <div class="concourse" data-subshell="4s">
+            <div class="concourse-title">S CONCOURSE</div>
+            <div class="gate-strip">
+              <button class="gate" data-orbital="4s" data-empty="true">4s</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal 3 -->
+      <div class="terminal" data-terminal="3">
+        <div class="terminal-label">
+          <span class="terminal-name">TERMINAL 3</span>
+          <span class="terminal-n mono">n = 3</span>
+        </div>
+        <div class="concourse-row">
+          <div class="concourse" data-subshell="3s">
+            <div class="concourse-title">S CONCOURSE</div>
+            <div class="gate-strip">
+              <button class="gate" data-orbital="3s" data-empty="true">3s</button>
+            </div>
+          </div>
+          <div class="concourse" data-subshell="3p">
+            <div class="concourse-title">P CONCOURSE</div>
+            <div class="gate-strip">
+              <button class="gate" data-orbital="3p1" data-empty="true">3p₁</button>
+              <button class="gate" data-orbital="3p2" data-empty="true">3p₂</button>
+              <button class="gate" data-orbital="3p3" data-empty="true">3p₃</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal 2 -->
+      <div class="terminal" data-terminal="2">
+        <div class="terminal-label">
+          <span class="terminal-name">TERMINAL 2</span>
+          <span class="terminal-n mono">n = 2</span>
+        </div>
+        <div class="concourse-row">
+          <div class="concourse" data-subshell="2s">
+            <div class="concourse-title">S CONCOURSE</div>
+            <div class="gate-strip">
+              <button class="gate" data-orbital="2s">2s</button>
+            </div>
+          </div>
+          <div class="concourse" data-subshell="2p">
+            <div class="concourse-title">P CONCOURSE</div>
+            <div class="gate-strip">
+              <button class="gate" data-orbital="2p1">2p₁</button>
+              <button class="gate" data-orbital="2p2">2p₂</button>
+              <button class="gate" data-orbital="2p3">2p₃</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal 1 -->
+      <div class="terminal" data-terminal="1">
+        <div class="terminal-label">
+          <span class="terminal-name">TERMINAL 1</span>
+          <span class="terminal-n mono">n = 1</span>
+        </div>
+        <div class="concourse-row">
+          <div class="concourse" data-subshell="1s">
+            <div class="concourse-title">S CONCOURSE</div>
+            <div class="gate-strip">
+              <button class="gate" data-orbital="1s">1s</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nucleus -->
+      <div class="nucleus-core">
+        <span class="core-dot"></span>
+        <span class="core-label" id="nucleusLabel">NUCLEUS / CORE · +8</span>
+      </div>
+    </div>
+
+    <aside class="map-readout" id="mapReadout">
+      <div class="readout-tag">SELECTION</div>
+      <div class="readout-body" id="mapReadoutBody">
+        <p class="muted">Select a terminal, concourse, or gate to view its structural role in the electron configuration.</p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- HIERARCHY BREADCRUMB -->
+  <div class="hierarchy">
+    <div class="hierarchy-head">STRUCTURAL HIERARCHY</div>
+    <div class="hierarchy-flow">
+      <span>ENERGY LEVEL / SHELL</span><span class="arrow">→</span>
+      <span>SUBSHELL</span><span class="arrow">→</span>
+      <span>ORBITAL</span><span class="arrow">→</span>
+      <span>ELECTRON</span>
+    </div>
+    <div class="hierarchy-example mono">TERMINAL 2 → P CONCOURSE → GATE P02 → ELECTRON E-06</div>
+    <dl class="hierarchy-defs">
+      <div><dt>Electron shell / energy level</dt><dd>A principal energy region described by n.</dd></div>
+      <div><dt>Subshell</dt><dd>A division within an energy level, labeled s, p, d, or f.</dd></div>
+      <div><dt>Orbital</dt><dd>A region of space, described by the quantum mechanical model, where an electron is likely to be found.</dd></div>
+    </dl>
+  </div>
+
+  <!-- SUBSHELL CAPACITY BOARD -->
+  <div class="capacity-board">
+    <div class="section-head compact">
+      <h3>GATE ALLOCATION / SUBSHELL CAPACITY</h3>
+      <p class="section-desc">Each orbital (gate) holds a maximum of two electrons. Capacity equals orbitals × 2.</p>
+    </div>
+    <div class="capacity-grid">
+      <div class="capacity-cell">
+        <div class="capacity-name">S CONCOURSE</div>
+        <div class="gate-mini one"><span></span></div>
+        <div class="capacity-meta"><span>1 orbital</span><span class="mono">2 e⁻</span></div>
+      </div>
+      <div class="capacity-cell">
+        <div class="capacity-name">P CONCOURSE</div>
+        <div class="gate-mini three"><span></span><span></span><span></span></div>
+        <div class="capacity-meta"><span>3 orbitals</span><span class="mono">6 e⁻</span></div>
+      </div>
+      <div class="capacity-cell">
+        <div class="capacity-name">D CONCOURSE</div>
+        <div class="gate-mini five"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="capacity-meta"><span>5 orbitals</span><span class="mono">10 e⁻</span></div>
+      </div>
+      <div class="capacity-cell">
+        <div class="capacity-name">F CONCOURSE</div>
+        <div class="gate-mini seven"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="capacity-meta"><span>7 orbitals</span><span class="mono">14 e⁻</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PASSENGERS / RECORD + BOARDING PASS -->
+<section id="passengers" class="section" data-section="passengers">
+  <div class="section-head">
+    <h2>PASSENGER OPERATIONS</h2>
+    <p class="section-desc">Electrons are negatively charged subatomic particles. Their arrangement around the nucleus determines an atom's electron configuration.</p>
+  </div>
+
+  <div class="passenger-layout">
+    <div class="passenger-list">
+      <div class="mini-head">PASSENGER MANIFEST · O / 08</div>
+      <div class="manifest" id="manifest"><!-- populated by JS --></div>
+    </div>
+
+    <div class="passenger-detail">
+      <div class="record-panel" id="recordPanel">
+        <div class="record-empty muted">Select an electron from the manifest or operations board to open its passenger record.</div>
+      </div>
+
+      <div class="boarding-pass-wrap" id="boardingPassWrap" hidden>
+        <div class="boarding-pass" id="boardingPass">
+          <div class="bp-stub">
+            <div class="bp-brand">EIA</div>
+            <div class="bp-brand-sub">ELECTRON<br>BOARDING PASS</div>
+            <div class="bp-atom mono" id="bpAtom">O / 08</div>
+          </div>
+          <div class="bp-main">
+            <div class="bp-row bp-top">
+              <div><span class="bp-k">PASSENGER</span><span class="bp-v mono" id="bpId">E-07</span></div>
+              <div><span class="bp-k">ATOM</span><span class="bp-v" id="bpAtomName">OXYGEN</span></div>
+            </div>
+            <div class="bp-row">
+              <div><span class="bp-k">TERMINAL</span><span class="bp-v mono" id="bpTerminal">02</span></div>
+              <div><span class="bp-k">SECTION</span><span class="bp-v mono" id="bpSection">P</span></div>
+              <div><span class="bp-k">GATE</span><span class="bp-v mono" id="bpGate">P03</span></div>
+            </div>
+            <div class="bp-row">
+              <div><span class="bp-k">ORBITAL</span><span class="bp-v mono" id="bpOrbital">2p₃</span></div>
+              <div><span class="bp-k">SPIN</span><span class="bp-v mono" id="bpSpin">↑</span></div>
+              <div><span class="bp-k">STATUS</span><span class="bp-v ok" id="bpStatus">BOARDED</span></div>
+            </div>
+            <div class="bp-barcode" aria-hidden="true"></div>
+            <div class="bp-code mono"><span id="bpFacility"></span>EIA-ATOM-008</span> · <span id="bpOpCode">T2-P03</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOARDING CONTROL CENTER -->
+<section id="boarding" class="section" data-section="boarding">
+  <div class="section-head">
+    <h2>ELECTRON BOARDING CONTROL</h2>
+    <p class="section-desc">Gate allocation is governed by three rules: the Aufbau principle, Hund's rule, and the Pauli exclusion principle.</p>
+  </div>
+
+  <!-- AUFBAU -->
+  <div class="ctrl-block">
+    <div class="ctrl-main">
+      <div class="mini-head">AUTOMATIC BOARDING · AUFBAU SEQUENCE</div>
+      <div class="aufbau-gates" id="aufbauGates"><!-- populated by JS --></div>
+      <div class="ctrl-actions">
+        <button class="btn btn-primary" id="aufbauRun">RUN AUTOMATIC BOARDING</button>
+        <button class="btn btn-ghost" id="aufbauReset">RESET</button>
+      </div>
+      <div class="log-box">
+        <div class="log-head">BOARDING LOG</div>
+        <ul class="log-list" id="aufbauLog"></ul>
+      </div>
+    </div>
+    <aside class="ctrl-note">
+      <div class="note-title">AUFBAU PRINCIPLE</div>
+      <p>Electrons occupy lower-energy orbitals before higher-energy orbitals.</p>
+      <div class="energy-order">
+        <div class="note-title small">ENERGY ORDER</div>
+        <div class="order-strip mono">1s · 2s · 2p · 3s · 3p</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- HUND -->
+  <div class="ctrl-block">
+    <div class="ctrl-main">
+      <div class="mini-head">2p CONCOURSE · HUND SEQUENCE</div>
+      <div class="hund-gates" id="hundGates">
+        <div class="hund-gate" data-gate="0"><span class="hg-label mono">P01</span><span class="hg-slot"></span></div>
+        <div class="hund-gate" data-gate="1"><span class="hg-label mono">P02</span><span class="hg-slot"></span></div>
+        <div class="hund-gate" data-gate="2"><span class="hg-label mono">P03</span><span class="hg-slot"></span></div>
+      </div>
+      <div class="ctrl-actions">
+        <button class="btn btn-primary" id="hundStep">ASSIGN NEXT ELECTRON</button>
+        <button class="btn btn-ghost" id="hundReset">RESET</button>
+      </div>
+      <div class="hund-status mono" id="hundStatus">0 / 4 electrons assigned · empty gates first</div>
+    </div>
+    <aside class="ctrl-note">
+      <div class="note-title">HUND'S RULE</div>
+      <p>Electrons occupy equal-energy orbitals singly, with parallel spins, before pairing.</p>
+    </aside>
+  </div>
+
+  <!-- PAULI -->
+  <div class="ctrl-block" id="pauli">
+    <div class="ctrl-main">
+      <div class="mini-head">PAULI SECURITY CONTROL · GATE 2p₁</div>
+      <div class="pauli-panel" id="pauliPanel">
+        <div class="pauli-gate">
+          <span class="pauli-gate-label mono">GATE OCCUPANCY · 2p₁</span>
+          <span class="pauli-gate-cap mono">CAPACITY 2</span>
+          <div class="pauli-slots" id="pauliSlots">
+            <span class="pauli-slot" data-slot="0"></span>
+            <span class="pauli-slot" data-slot="1"></span>
+          </div>
+        </div>
+        <div class="pauli-controls">
+          <div class="mini-head small">ATTEMPT SPIN COMBINATION</div>
+          <div class="pauli-combos" id="pauliCombos">
+            <button class="btn btn-mini" data-combo="up-down">↑↓</button>
+            <button class="btn btn-mini" data-combo="up-up">↑↑</button>
+            <button class="btn btn-mini" data-combo="down-down">↓↓</button>
+            <button class="btn btn-mini" data-combo="up-up-down">↑↑↓</button>
+          </div>
+          <button class="btn btn-ghost btn-mini" id="pauliReset">CLEAR GATE</button>
+        </div>
+      </div>
+      <div class="pauli-alert" id="pauliAlert" data-state="idle">
+        <span class="alert-icon" aria-hidden="true"></span>
+        <span class="alert-text" id="pauliAlertText">Awaiting spin combination.</span>
+      </div>
+    </div>
+    <aside class="ctrl-note">
+      <div class="note-title">PAULI EXCLUSION PRINCIPLE</div>
+      <p>One orbital can hold no more than two electrons, and two electrons in the same orbital must have opposite spins.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- ENERGY TRANSFER LAB -->
+<section id="energy" class="section" data-section="energy">
+  <div class="section-head">
+    <h2>ENERGY TRANSFER CONTROL</h2>
+    <p class="section-desc">Track E-08 as it absorbs and emits energy. The vertical movement is a visual analogy — electrons do not physically fly along this path.</p>
+  </div>
+
+  <div class="energy-layout">
+    <div class="energy-ladder" id="energyLadder">
+      <div class="level" data-level="3s">
+        <span class="level-label mono">3s</span>
+        <span class="level-tag">HIGHER ENERGY</span>
+        <span class="level-track"><span class="electron-marker" id="markerHigh" hidden>E8</span></span>
+      </div>
+      <div class="level" data-level="2p">
+        <span class="level-label mono">2p</span>
+        <span class="level-tag">LOWER ENERGY</span>
+        <span class="level-track"><span class="electron-marker active" id="markerLow">E8</span></span>
+      </div>
+      <div class="pulse-layer" id="pulseLayer" aria-hidden="true"></div>
+    </div>
+
+    <div class="energy-side">
+      <div class="energy-status-panel">
+        <div class="es-row"><span class="es-k">ELECTRON</span><span class="es-v mono">E-08</span></div>
+        <div class="es-row"><span class="es-k">ORIGIN</span><span class="es-v mono" id="esOrigin">2p</span></div>
+        <div class="es-row"><span class="es-k">CURRENT</span><span class="es-v mono" id="esCurrent">2p</span></div>
+        <div class="es-row"><span class="es-k">ENERGY</span><span class="es-v mono" id="esEnergy">BASELINE</span></div>
+        <div class="es-row"><span class="es-k">STATUS</span><span class="es-v state" id="esStatus" data-state="ground">GROUND STATE</span></div>
+      </div>
+      <div class="ctrl-actions column">
+        <button class="btn btn-primary" id="absorbBtn">ABSORB ENERGY</button>
+        <button class="btn btn-amber" id="emitBtn" disabled>RETURN TO LOWER ENERGY</button>
+      </div>
+      <div class="log-box">
+        <div class="log-head">EVENT LOG</div>
+        <ul class="log-list" id="energyLog"></ul>
+      </div>
+      <dl class="mini-defs">
+        <div><dt>Absorption</dt><dd>When an electron absorbs energy, it can move from a lower-energy state to a higher-energy state.</dd></div>
+        <div><dt>Emission</dt><dd>When an electron moves from a higher-energy state to a lower-energy state, the energy difference can be released as a photon.</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- PHOTON FLIGHT INFO -->
+  <div class="photon-fids" id="photonFids" hidden>
+    <div class="fids-head">
+      <span class="fids-title">PHOTON DEPARTURE</span>
+      <span class="fids-clock mono">QNT-RADAR</span>
+    </div>
+    <div class="photon-grid">
+      <div class="pf"><span class="pf-k">FLIGHT</span><span class="pf-v mono">PH-01</span></div>
+      <div class="pf"><span class="pf-k">ORIGIN</span><span class="pf-v">ELECTRON TRANSITION</span></div>
+      <div class="pf"><span class="pf-k">STATUS</span><span class="pf-v ok">EMITTED</span></div>
+      <div class="pf"><span class="pf-k">ENERGY</span><span class="pf-v mono">ΔE</span></div>
+      <div class="pf"><span class="pf-k">WAVELENGTH</span><span class="pf-v mono">λ</span></div>
+    </div>
+    <div class="photon-eq mono">E = hν&nbsp;&nbsp;·&nbsp;&nbsp;c = λν&nbsp;&nbsp;⟹&nbsp;&nbsp;E = hc / λ</div>
+    <p class="photon-note">Higher photon energy → higher frequency → shorter wavelength. Lower photon energy → lower frequency → longer wavelength.</p>
+  </div>
+
+  <!-- SPECTRUM -->
+  <div class="spectrum-block">
+    <div class="section-head compact">
+      <h3>WAVELENGTH SPECTRUM</h3>
+      <p class="section-desc">Adjust wavelength to observe the inverse relationship between wavelength, frequency, and photon energy.</p>
+    </div>
+    <div class="spectrum-strip" id="spectrumStrip" aria-hidden="true"></div>
+    <input type="range" id="spectrumSlider" min="380" max="750" value="520" step="1"
+           aria-label="Wavelength in nanometers" />
+    <div class="spectrum-readout">
+      <div class="sr"><span class="sr-k">BAND</span><span class="sr-v" id="srBand">GREEN</span></div>
+      <div class="sr"><span class="sr-k">WAVELENGTH</span><span class="sr-v mono" id="srWave">520 nm</span></div>
+      <div class="sr"><span class="sr-k">FREQUENCY</span><span class="sr-v mono" id="srFreq">—</span></div>
+      <div class="sr"><span class="sr-k">PHOTON ENERGY</span><span class="sr-v mono" id="srEnergy">—</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- RADAR / MODELS -->
+<section id="radar" class="section" data-section="radar">
+  <div class="section-head">
+    <h2>QUANTUM RADAR / ATOMIC MODELS</h2>
+    <p class="section-desc">Compare the legacy fixed-orbit model with the quantum mechanical probability model.</p>
+  </div>
+
+  <div class="models-split">
+    <div class="model-pane">
+      <div class="model-head">
+        <span class="model-tag">LEGACY NAVIGATION MODEL</span>
+        <span class="model-name">BOHR MODEL</span>
+      </div>
+      <div class="bohr-view" id="bohrView">
+        <svg viewBox="0 0 240 240" class="bohr-svg" role="img" aria-label="Bohr model of oxygen">
+          <circle cx="120" cy="120" r="18" class="bohr-nucleus" />
+          <text x="120" y="124" class="bohr-nucleus-label">+8</text>
+          <circle cx="120" cy="120" r="55" class="bohr-shell" />
+          <circle cx="120" cy="120" r="95" class="bohr-shell" />
+          <g id="bohrElectrons"></g>
+        </svg>
+        <div class="model-meta mono">SHELL 1: 2 e⁻ · SHELL 2: 6 e⁻</div>
+      </div>
+      <p class="model-note">Bohr proposed that electrons occupy specific quantized energy levels around the nucleus. The model explained key features of hydrogen's emission spectrum, but it does not fully describe multi-electron atoms.</p>
+    </div>
+
+    <div class="model-split-divider" aria-hidden="true"></div>
+
+    <div class="model-pane">
+      <div class="model-head">
+        <span class="model-tag">QUANTUM RADAR</span>
+        <span class="model-name">SCHRÖDINGER MODEL</span>
+      </div>
+      <div class="radar-view">
+        <div class="radar-scope" id="radarScope">
+          <span class="radar-sweep" aria-hidden="true"></span>
+          <div class="orbital-density" id="orbitalDensity" data-orbital="1s"></div>
+        </div>
+        <div class="radar-controls">
+          <button class="btn btn-mini active" data-orbital-view="1s">1s</button>
+          <button class="btn btn-mini" data-orbital-view="2s">2s</button>
+          <button class="btn btn-mini" data-orbital-view="2p">2p</button>
+        </div>
+      </div>
+      <p class="model-note">The quantum mechanical model describes electrons using wavefunctions. Orbitals represent probability distributions for where electrons may be found. Unlike the Bohr model, electrons are not assigned exact circular paths.</p>
+    </div>
+  </div>
+</section>
+
+<!-- KNOWLEDGE CHECK -->
+<section id="knowledge" class="section" data-section="knowledge">
+  <div class="section-head">
+    <h2>EIA OPERATIONS CERTIFICATION</h2>
+    <p class="section-desc">Six-question assessment covering the core operational concepts.</p>
+  </div>
+  <div class="quiz" id="quiz">
+    <div class="quiz-progress">
+      <span class="mono" id="quizCounter">QUESTION 01 / 06</span>
+      <div class="quiz-bar"><span id="quizBar"></span></div>
+    </div>
+    <div class="quiz-body" id="quizBody"><!-- populated by JS --></div>
+  </div>
+</section>
+
+<!-- ANALOGY LIMITS + REQUIREMENTS + GLOSSARY -->
+<section id="reference" class="section" data-section="reference">
+  <div class="ref-columns">
+    <div class="analogy-limits">
+      <div class="section-head compact">
+        <h3>WHERE THE AIRPORT ANALOGY ENDS</h3>
+      </div>
+      <ul class="limit-list">
+        <li>Electrons are not tiny people.</li>
+        <li>They do not wait at literal gates.</li>
+        <li>Orbitals are not physical rooms.</li>
+        <li>Electrons do not travel along visible airport routes.</li>
+        <li>Quantum transitions are changes between allowed energy states, not physical flights.</li>
+        <li>The airport system is only a visual model for organization and energy behavior.</li>
+      </ul>
+    </div>
+
+    <div class="req-status">
+      <div class="section-head compact">
+        <h3>PROJECT REQUIREMENT STATUS</h3>
+      </div>
+      <ul class="req-list" id="reqList"><!-- populated by JS --></ul>
+    </div>
+  </div>
+
+  <div class="glossary-block">
+    <div class="section-head compact">
+      <h3>SYSTEM GLOSSARY</h3>
+      <p class="section-desc">Chemistry definition, airport analogy, and analogy limitation for each concept.</p>
+    </div>
+    <input type="search" id="glossarySearch" class="glossary-search" placeholder="Search concepts…" aria-label="Search glossary" />
+    <div class="glossary-grid" id="glossaryGrid"><!-- populated by JS --></div>
+  </div>
+</section>
+
+<!-- ============ FLIGHT BOOKING ============ -->
+<section id="booking" class="section" data-section="booking">
+  <div class="section-head">
+    <h2>EIA FLIGHT BOOKING</h2>
+    <p class="section-desc">Book an electron's flight to view its assigned terminal, concourse, gate and orbital. This describes where the electron belongs in the configuration — it is not literal physical travel.</p>
+  </div>
+
+  <div class="booking-layout">
+    <form class="booking-form" id="bookingForm">
+      <div class="mini-head">BOOKING · EIA ELECTRON AIRWAYS</div>
+      <label class="field">
+        <span class="field-k">ATOM</span>
+        <select id="bookAtom"><option value="O" selected>Oxygen / O · 08</option></select>
+      </label>
+      <label class="field">
+        <span class="field-k">PASSENGER</span>
+        <select id="bookPassenger"></select>
+      </label>
+      <div class="booking-readout" id="bookingReadout"></div>
+      <div class="ctrl-actions">
+        <button type="button" class="btn btn-primary" id="bookItinerary">VIEW ITINERARY</button>
+        <button type="button" class="btn btn-amber" id="bookUpgrade" hidden>REQUEST ENERGY UPGRADE</button>
+      </div>
+    </form>
+
+    <div class="booking-side">
+      <div class="itinerary" id="itinerary" hidden></div>
+      <div class="upgrade-panel" id="upgradePanel" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AIRPORT MAP ============ -->
+<section id="airportmap" class="section" data-section="airportmap">
+  <div class="section-head">
+    <h2>EIA AIRPORT MAP</h2>
+    <p class="section-desc">Indoor wayfinding for the oxygen atom. Terminals are shells, concourses are subshells, gates are orbitals.</p>
+  </div>
+
+  <div class="map-overview">
+    <div class="mini-head">SCHEMATIC OVERVIEW</div>
+    <div class="schematic" id="schematic">
+      <button class="node node-core" data-focus="core">NUCLEUS</button>
+      <div class="node-branch">
+        <button class="node" data-focus="1">T1</button>
+        <button class="node" data-focus="2">T2</button>
+        <button class="node" data-focus="3">T3</button>
+      </div>
+      <div class="node-tree" id="nodeTree"></div>
+    </div>
+  </div>
+
+  <div class="airport-map-layout">
+    <div class="wayfinding" id="wayfinding">
+      <svg viewBox="0 0 640 420" class="wayfinding-svg" id="wayfindingSvg" role="img" aria-label="EIA airport wayfinding map">
+        <!-- routes layer (animated) -->
+        <g id="routeLayer"></g>
+        <!-- core -->
+        <circle cx="60" cy="210" r="26" class="wf-core" data-node="core" />
+        <text x="60" y="214" class="wf-core-label">CORE</text>
+
+        <!-- Terminal 1 -->
+        <g class="wf-terminal" data-node-terminal="1">
+          <rect x="150" y="40" width="150" height="90" class="wf-term-box" />
+          <text x="160" y="62" class="wf-term-title">TERMINAL 1 · n=1</text>
+          <rect x="164" y="76" width="122" height="40" class="wf-gate" data-node-gate="1s" />
+          <text x="225" y="100" class="wf-gate-label">S01 · 1s</text>
+        </g>
+
+        <!-- Terminal 2 -->
+        <g class="wf-terminal" data-node-terminal="2">
+          <rect x="150" y="150" width="360" height="120" class="wf-term-box" />
+          <text x="160" y="172" class="wf-term-title">TERMINAL 2 · n=2</text>
+          <rect x="164" y="188" width="90" height="66" class="wf-gate" data-node-gate="2s" />
+          <text x="209" y="224" class="wf-gate-label">S01 · 2s</text>
+          <rect x="266" y="188" width="72" height="66" class="wf-gate" data-node-gate="2p1" />
+          <text x="302" y="224" class="wf-gate-label">P01</text>
+          <rect x="348" y="188" width="72" height="66" class="wf-gate" data-node-gate="2p2" />
+          <text x="384" y="224" class="wf-gate-label">P02</text>
+          <rect x="430" y="188" width="72" height="66" class="wf-gate" data-node-gate="2p3" />
+          <text x="466" y="224" class="wf-gate-label">P03</text>
+        </g>
+
+        <!-- Terminal 3 -->
+        <g class="wf-terminal" data-node-terminal="3">
+          <rect x="150" y="290" width="360" height="110" class="wf-term-box wf-term-high" />
+          <text x="160" y="312" class="wf-term-title">TERMINAL 3 · n=3</text>
+          <rect x="164" y="326" width="90" height="60" class="wf-gate" data-node-gate="3s" />
+          <text x="209" y="360" class="wf-gate-label">S01 · 3s</text>
+          <rect x="266" y="326" width="72" height="60" class="wf-gate" data-node-gate="3p1" />
+          <text x="302" y="360" class="wf-gate-label">P01</text>
+          <rect x="348" y="326" width="72" height="60" class="wf-gate" data-node-gate="3p2" />
+          <text x="384" y="360" class="wf-gate-label">P02</text>
+          <rect x="430" y="326" width="72" height="60" class="wf-gate" data-node-gate="3p3" />
+          <text x="466" y="360" class="wf-gate-label">P03</text>
+        </g>
+      </svg>
+      <div class="wf-legend">
+        <span><b class="lg lg-term"></b>TERMINAL · shell</span>
+        <span><b class="lg lg-conc"></b>CONCOURSE · subshell</span>
+        <span><b class="lg lg-gate"></b>GATE · orbital</span>
+        <span><b class="lg lg-pass"></b>PASSENGER · electron</span>
+        <span><b class="lg lg-flight"></b>FLIGHT · transition</span>
+      </div>
+    </div>
+
+    <aside class="map-panel" id="airportMapPanel">
+      <div class="readout-tag">MAP SELECTION</div>
+      <div id="airportMapBody"><p class="muted">Select a terminal, concourse or gate on the map to view its role and occupancy.</p></div>
+    </aside>
+  </div>
+
+  <!-- gate finder -->
+  <div class="ctrl-block">
+    <div class="ctrl-main">
+      <div class="mini-head">FIND MY GATE</div>
+      <div class="finder-row">
+        <select id="finderSelect"></select>
+        <button class="btn btn-primary" id="finderGo">LOCATE PASSENGER</button>
+      </div>
+      <div class="finder-result" id="finderResult"></div>
+    </div>
+    <aside class="ctrl-note">
+      <div class="note-title">WAYFINDING</div>
+      <p>The highlighted route is indoor airport wayfinding for locating an electron's assignment. Electrons do not physically walk this path — it is a visual analogy for the configuration.</p>
+    </aside>
+  </div>
+
+  <!-- live gate status -->
+  <div class="gate-status-block">
+    <div class="section-head compact"><h3>LIVE GATE STATUS</h3></div>
+    <div class="gate-status-grid" id="gateStatusGrid"></div>
+  </div>
+
+  <!-- airport directory -->
+  <div class="directory-block">
+    <div class="section-head compact"><h3>AIRPORT DIRECTORY</h3></div>
+    <div class="directory-grid" id="directoryGrid"></div>
+  </div>
+</section>
+
+<!-- ============ CHECK-IN ============ -->
+<section id="checkin" class="section" data-section="checkin">
+  <div class="section-head">
+    <h2>ELECTRON CHECK-IN</h2>
+    <p class="section-desc">A guided six-step check-in validated against the Aufbau, Hund and Pauli rules.</p>
+  </div>
+  <div class="checkin-layout">
+    <ol class="checkin-steps" id="checkinSteps">
+      <li data-step="1">SELECT PASSENGER</li>
+      <li data-step="2">VERIFY ENERGY LEVEL</li>
+      <li data-step="3">ASSIGN SUBSHELL</li>
+      <li data-step="4">ASSIGN ORBITAL</li>
+      <li data-step="5">VERIFY SPIN</li>
+      <li data-step="6">BOARD</li>
+    </ol>
+    <div class="checkin-panel" id="checkinPanel"></div>
+  </div>
+
+  <!-- security screening -->
+  <div class="ctrl-block" id="security">
+    <div class="ctrl-main">
+      <div class="mini-head">ELECTRON SECURITY SCREENING · PAULI VERIFICATION</div>
+      <div class="screening" id="screening"></div>
+    </div>
+    <aside class="ctrl-note">
+      <div class="note-title">PAULI EXCLUSION PRINCIPLE</div>
+      <p>An orbital admits a second electron only if its spin is opposite to the current occupant. Same-spin entry is denied.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ AIRCRAFT CABIN ============ -->
+<section id="cabin" class="section" data-section="cabin">
+  <div class="section-head">
+    <h2>EIA FLIGHT CABIN</h2>
+    <p class="section-desc">A cabin diagram for the 2p concourse flight. Seats represent electron capacity in orbitals — they are not physical positions in the atom.</p>
+  </div>
+  <div class="cabin-layout">
+    <div class="cabin-view" id="cabinView">
+      <div class="cabin-flightlevel" id="cabinFlightLevel">FLIGHT LEVEL 2p · LOWER ENERGY</div>
+      <div class="fuselage">
+        <div class="cockpit"></div>
+        <div class="cabin-body">
+          <div class="seatmap" id="seatMap"></div>
+        </div>
+        <div class="tail"></div>
+      </div>
+      <p class="cabin-note" id="cabinNote">Aircraft altitude is only a visual analogy for higher energy. The electron does not physically fly upward.</p>
+    </div>
+    <div class="cabin-side">
+      <div class="energy-status-panel">
+        <div class="es-row"><span class="es-k">CABIN STATUS</span><span class="es-v" id="cabinStatus">GROUND-STATE SERVICE</span></div>
+        <div class="es-row"><span class="es-k">PASSENGER</span><span class="es-v mono">E-08</span></div>
+        <div class="es-row"><span class="es-k">ENERGY LEVEL</span><span class="es-v mono" id="cabinLevel">2p</span></div>
+      </div>
+      <p class="muted" style="font-size:12.5px">The cabin, departures, arrivals and boarding pass all read from the same electron state as the Energy Lab.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLIGHTS: DEPARTURES / ARRIVALS / STATUS / TIMELINE ============ -->
+<section id="flights" class="section" data-section="flights">
+  <div class="section-head">
+    <h2>FLIGHT OPERATIONS</h2>
+    <p class="section-desc">Departures, arrivals, flight status and the operations timeline for E-08 energy transitions and photon emission.</p>
+  </div>
+
+  <div class="boards-grid">
+    <div class="fids-panel">
+      <div class="fids-head"><span class="fids-title">DEPARTURES</span><span class="fids-clock mono">EIA</span></div>
+      <div class="table-scroll">
+        <table class="fids-table" id="departuresTable">
+          <thead><tr><th>FLIGHT</th><th>PASSENGER</th><th>ORIGIN</th><th>DEST</th><th>STATUS</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="fids-panel">
+      <div class="fids-head"><span class="fids-title">ARRIVALS</span><span class="fids-clock mono">EIA</span></div>
+      <div class="table-scroll">
+        <table class="fids-table" id="arrivalsTable">
+          <thead><tr><th>FLIGHT</th><th>PASSENGER</th><th>FROM</th><th>STATE</th><th>STATUS</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctrl-block">
+    <div class="ctrl-main">
+      <div class="mini-head">FLIGHT STATUS</div>
+      <div class="finder-row">
+        <select id="flightSelect">
+          <option value="EN-201">EN-201</option>
+          <option value="EN-202">EN-202</option>
+          <option value="PH-001">PH-001</option>
+        </select>
+        <button class="btn btn-primary" id="flightGo">CHECK STATUS</button>
+      </div>
+      <div class="flight-status-result" id="flightStatusResult"></div>
+    </div>
+    <aside class="ctrl-note">
+      <div class="note-title">CONNECTIONS</div>
+      <p>Conceptual transition used by this simulation: ground 2p → energy input → 3s → return → 2p → photon emitted. Electrons transition only between allowed energy states, not arbitrarily.</p>
+    </aside>
+  </div>
+
+  <div class="timeline-block">
+    <div class="section-head compact"><h3>AIRPORT OPERATIONS TIMELINE</h3></div>
+    <ul class="timeline" id="opsTimeline"></ul>
+  </div>
+</section>
+
+<!-- ============ AIRPORT JOURNEY ============ -->
+<section id="journey" class="section" data-section="journey">
+  <div class="section-head">
+    <h2>INTERACTIVE AIRPORT JOURNEY</h2>
+    <p class="section-desc">A guided ten-step walkthrough from check-in to ground-state restoration.</p>
+  </div>
+  <div class="journey" id="journey">
+    <div class="journey-progress"><span class="mono" id="journeyCounter">STEP 01 / 10</span><div class="journey-bar"><span id="journeyBar"></span></div></div>
+    <div class="journey-body" id="journeyBody"></div>
+    <div class="ctrl-actions">
+      <button class="btn btn-ghost" id="journeyBack">BACK</button>
+      <button class="btn btn-primary" id="journeyNext">NEXT</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ATOMS · ATOMIC PASSPORT CONTROL ============ -->
+<section id="atoms" class="section" data-section="atoms">
+  <div class="section-head">
+    <h2>ATOMIC PASSPORT CONTROL</h2>
+    <p class="section-desc">Select an atomic destination to inspect its passport, then load it into the EIA simulator. <span class="analogy-tag">AIRPORT ANALOGY</span> Terminal = principal energy level / shell · Gate = atomic orbital · Passenger = electron.</p>
+  </div>
+  <div class="atoms-layout">
+    <div class="periodic-wrap">
+      <div class="mini-head">ATOMIC DESTINATION DIRECTORY</div>
+      <div class="periodic-grid" id="periodicGrid" role="group" aria-label="Element directory"></div>
+    </div>
+    <aside class="passport-panel" id="passportPanel"></aside>
+  </div>
+  <div class="valence-block">
+    <div class="section-head compact"><h3>INTERNATIONAL / VALENCE TERMINAL</h3></div>
+    <div class="valence-terminal" id="valenceTerminal"></div>
+  </div>
+</section>
+
+<!-- ============ CONTROL TOWER ============ -->
+<section id="tower" class="section" data-section="tower">
+  <div class="section-head">
+    <h2>EIA CONTROL TOWER</h2>
+    <p class="section-desc">Live simulation state. Green = normal, amber = excited/warning, red = rule violation, cyan = informational.</p>
+  </div>
+  <div class="tower-grid" id="towerGrid"></div>
+
+  <div class="config-stage" id="configStage" data-view="split">
+    <div class="section-head compact">
+      <h3>CONFIGURATION VIEW</h3>
+      <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Configuration view mode">
+        <button class="vt-seg" data-view="airport" role="tab">AIRPORT VIEW</button>
+        <button class="vt-seg" data-view="chemistry" role="tab">CHEMISTRY VIEW</button>
+        <button class="vt-seg" data-view="split" role="tab">SPLIT VIEW</button>
+      </div>
+    </div>
+    <div class="stage-cols">
+      <div class="stage-col stage-airport">
+        <div class="mini-head">EIA OPERATIONS VIEW</div>
+        <div class="shell-summary" id="shellSummary"></div>
+      </div>
+      <div class="stage-col stage-chem">
+        <div class="mini-head">STANDARD CHEMISTRY VIEW</div>
+        <div class="orbital-diagram" id="orbitalDiagram"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tower-log-block">
+    <div class="section-head compact">
+      <h3>EVENT LOG</h3>
+      <div class="ctrl-actions">
+        <button class="btn btn-mini btn-ghost" id="towerClearLog">CLEAR LOG</button>
+        <button class="btn btn-mini btn-amber" id="resetSystem">RESET EIA SYSTEM</button>
+      </div>
+    </div>
+    <ul class="tower-log" id="towerLog"></ul>
+  </div>
+</section>
+
+<!-- ============ ION CONTROL ============ -->
+<section id="ions" class="section" data-section="ions">
+  <div class="section-head">
+    <h2>ELECTRON IMMIGRATION CONTROL</h2>
+    <p class="section-desc">Add or remove electrons to form ions. Proton count is fixed; net charge = protons − electrons. Electrons are removed from the highest principal energy level first.</p>
+  </div>
+  <div class="ion-layout">
+    <div class="ion-main" id="ionPanel"></div>
+    <div class="ion-notice" id="ionNotice" hidden></div>
+  </div>
+</section>
+
+<!-- ============ QUANTUM RECORDS ============ -->
+<section id="quantum" class="section" data-section="quantum">
+  <div class="section-head">
+    <h2>QUANTUM FLIGHT RECORDS</h2>
+    <p class="section-desc">Each electron's four quantum numbers, consistent with its orbital assignment.</p>
+  </div>
+  <div class="quantum-map">
+    <div class="qm-item"><span class="qm-sym mono">n</span><span class="qm-def">Principal energy level → <b>TERMINAL</b></span></div>
+    <div class="qm-item"><span class="qm-sym mono">l</span><span class="qm-def">Subshell type → <b>CONCOURSE</b></span></div>
+    <div class="qm-item"><span class="qm-sym mono">m<sub>l</sub></span><span class="qm-def">Orbital → <b>GATE</b></span></div>
+    <div class="qm-item"><span class="qm-sym mono">m<sub>s</sub></span><span class="qm-def">Electron spin → <b>SEAT ORIENTATION</b></span></div>
+  </div>
+  <div class="table-scroll">
+    <table class="fids-table" id="quantumTable">
+      <thead><tr><th>ID</th><th>n</th><th>l</th><th>m<sub>l</sub></th><th>m<sub>s</sub></th><th>SUBSHELL</th><th>SPIN</th></tr></thead>
+      <tbody id="quantumBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ SPECTROSCOPY ============ -->
+<section id="spectroscopy" class="section" data-section="spectroscopy">
+  <div class="section-head">
+    <h2>SPECTROSCOPY OBSERVATION WINDOW</h2>
+    <p class="section-desc">Frequency and photon energy are computed from wavelength using E = hc/λ (h = 6.626×10⁻³⁴ J·s, c = 2.998×10⁸ m/s).</p>
+  </div>
+  <div class="spectro-layout">
+    <div class="spectro-main">
+      <div class="spectro-scope" id="spectroScope">
+        <div class="spectro-scale">
+          <span>380</span><span>450</span><span>500</span><span>550</span><span>600</span><span>650</span><span>700</span>
+        </div>
+        <div class="spectro-line" id="spectroLine"></div>
+      </div>
+      <input type="range" id="spectroSlider" min="360" max="780" value="486" step="1" aria-label="Photon wavelength in nanometres" />
+    </div>
+    <aside class="spectro-readout" id="spectroReadout"></aside>
+  </div>
+
+  <div class="hydrogen-block">
+    <div class="section-head compact"><h3>HYDROGEN ARRIVAL / EMISSION BOARD</h3></div>
+    <div class="hydrogen-board" id="hydrogenBoard"></div>
+  </div>
+</section>
+
+<!-- ============ GATE ASSIGNMENT LAB ============ -->
+<section id="gatelab" class="section" data-section="gatelab">
+  <div class="section-head">
+    <h2>GATE ASSIGNMENT LAB</h2>
+    <p class="section-desc">Assign the loaded atom's electrons to orbital gates. Click a gate to seat the selected spin; right-click to remove. Then verify against Aufbau, Hund and Pauli.</p>
+  </div>
+  <div class="gatelab-controls">
+    <div class="gl-spin-sel" id="gateLabSpin">
+      <button class="btn btn-mini gl-spin active" data-spin="up">SPIN ↑</button>
+      <button class="btn btn-mini gl-spin" data-spin="down">SPIN ↓</button>
+    </div>
+    <div class="gate-lab-pool" id="gateLabPool"></div>
+  </div>
+  <div class="gatelab-board" id="gateLabBoard"></div>
+  <div class="ctrl-actions">
+    <button class="btn btn-primary" id="gateLabCheck">CHECK CONFIGURATION</button>
+    <button class="btn btn-ghost" id="gateLabAuto">AUTO ASSIGN</button>
+    <button class="btn btn-ghost" id="gateLabReset">RESET GATES</button>
+  </div>
+  <div class="gatelab-result" id="gateLabResult"></div>
+</section>
+
+<!-- ============ CONTROLLER CHALLENGE ============ -->
+<section id="challenge" class="section" data-section="challenge">
+  <div class="section-head">
+    <h2>AIR TRAFFIC CONTROLLER CHALLENGE</h2>
+    <p class="section-desc">Random incoming atom. Assign every electron correctly. Best accuracy: <span id="challengeBest" class="mono">0%</span></p>
+  </div>
+  <div class="ctrl-actions">
+    <button class="btn btn-primary" id="challengeStart">START CHALLENGE</button>
+    <button class="btn btn-ghost" id="challengeSubmit">SUBMIT CONFIGURATION</button>
+    <button class="btn btn-ghost" id="challengeNew">NEW ATOM</button>
+  </div>
+  <div class="challenge-panel" id="challengePanel"></div>
+  <div class="challenge-report" id="challengeReport" hidden></div>
+</section>
+
+<!-- ============ CERTIFICATE ============ -->
+<section id="cert" class="section" data-section="cert">
+  <div class="section-head">
+    <h2>EIA ATOMIC OPERATIONS CERTIFICATE</h2>
+    <p class="section-desc">Generate an on-screen certificate based on your quiz and challenge scores.</p>
+  </div>
+  <div class="cert-controls">
+    <input type="text" id="certName" placeholder="Controller name (optional)" aria-label="Controller name" />
+    <button class="btn btn-primary" id="certGenerate">GENERATE CERTIFICATE</button>
+  </div>
+  <div class="certificate" id="certificate" hidden></div>
+</section>
+</main>
+
+<!-- RESET CONFIRM MODAL -->
+<div class="modal-scrim" id="resetModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+    <div class="modal-title" id="resetModalTitle">RESET EIA SYSTEM</div>
+    <p class="modal-body">This restores oxygen, 8 electrons, neutral charge, ground state, and clears the event log and photon history. Continue?</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="resetCancel">CANCEL</button>
+      <button class="btn btn-amber" id="resetConfirm">RESET SYSTEM</button>
+    </div>
+  </div>
+</div>
+
+<!-- GATE SCREEN MODAL -->
+<aside class="ops-drawer gate-screen" id="gateScreen" aria-hidden="true">
+  <div class="ops-drawer-inner">
+    <div class="drawer-head">
+      <span class="drawer-tag">GATE SCREEN</span>
+      <button class="drawer-close" id="gateScreenClose" aria-label="Close gate screen">×</button>
+    </div>
+    <div class="drawer-body" id="gateScreenBody"></div>
+  </div>
+</aside>
+
+<!-- ELECTRON RECORD SIDE PANEL (operations drawer) -->
+<aside class="ops-drawer" id="opsDrawer" aria-hidden="true">
+  <div class="ops-drawer-inner">
+    <div class="drawer-head">
+      <span class="drawer-tag">PASSENGER RECORD</span>
+      <button class="drawer-close" id="drawerClose" aria-label="Close record">×</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"><!-- populated by JS --></div>
+  </div>
+</aside>
+<div class="drawer-scrim" id="drawerScrim" hidden></div>
+
+<footer class="footer">
+  <span class="mono" id="footerFacility">EIA-ATOM-008</span>
+  <span>ELECTRON INTERNATIONAL AIRPORT · ATOMIC TERMINAL OPERATIONS</span>
+  <span class="mono" id="footerState">OXYGEN / O · GROUND STATE</span>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
