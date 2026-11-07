@@ -1208,6 +1208,7 @@
         }
 
         .chat-list-item {
+            position: relative; /* anchors the unread dot to this row */
             display: flex;
             align-items: center;
             padding: 15px 20px;
@@ -4196,6 +4197,85 @@
 
 
         }
+
+        /* ===================== Mobile layout (phones / narrow screens) ===================== */
+        .mobile-chat-back { display: none; }
+
+        @media (max-width: 768px) {
+            /* Use the real visible height on mobile browsers (address bar aware) */
+            .page.active { height: 100vh; height: 100dvh; }
+
+            /* Left sidebar -> bottom tab bar */
+            .side-nav {
+                top: auto; bottom: 0; left: 0; right: 0;
+                width: 100%; height: 56px;
+                flex-direction: row; justify-content: space-around;
+                padding: 0 4px env(safe-area-inset-bottom);
+                border-right: none; border-top: 1px solid #ddd;
+                z-index: 1000;
+            }
+            .nav-top, .nav-bottom { flex-direction: row; align-items: center; gap: 2px; }
+            .nav-top { flex: 1; justify-content: space-around; }
+            .nav-item { margin-bottom: 0; width: 42px; height: 42px; }
+            .nav-item i { font-size: 1.3em; }
+
+            body.with-sidebar main,
+            body.with-sidebar header,
+            body.with-sidebar footer { margin-left: 0; }
+            /* keep content clear of the bottom bar */
+            body.with-sidebar .page.active { padding-bottom: calc(56px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+            body.with-sidebar footer { display: none !important; }
+
+            /* Header: tighter, no overflow */
+            header { padding: 8px 12px; gap: 8px; }
+            .header-left, .header-right { flex: 0 1 auto; min-width: 0; }
+            .header-center { flex: 1 1 auto; min-width: 0; }
+            .header-center p { margin: 0; font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .header-right { gap: 6px; }
+            .logo-img { max-height: 28px; width: auto; }
+            .login-btn { padding: 7px 10px; margin-left: 0; font-size: 0.85em; white-space: nowrap; }
+            .fancy-back-button { font-size: 0.9em; white-space: nowrap; }
+            #index-page .header-center { display: none; }
+            #index-page .group { max-width: 140px; }
+            #index-page .group .input { width: 100%; min-width: 0; }
+
+            main { padding: 12px; }
+            .auth-form { margin: 20px auto; padding: 18px; width: auto; max-width: 100%; box-sizing: border-box; }
+            .profile-card { max-width: 100%; }
+
+            /* iOS zooms in on inputs smaller than 16px */
+            input, select, textarea { font-size: 16px; }
+
+            /* Grids: fewer, narrower columns */
+            .all-profiles-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+            .circuit-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+
+            /* Messages: list OR chat, full width, never both */
+            .messages-main { padding: 0; }
+            .messages-container { height: 100%; }
+            .chat-list-pane { flex: 1 1 100%; border-right: none; min-width: 0; }
+            .active-chat-pane { display: none; min-width: 0; }
+            .messages-container.chat-open .chat-list-pane { display: none; }
+            .messages-container.chat-open .active-chat-pane { display: flex; flex: 1 1 100%; }
+            .mobile-chat-back {
+                display: flex; align-items: center; justify-content: center;
+                width: 36px; height: 36px; margin-right: 6px; flex-shrink: 0;
+                background: none; border: none; border-radius: 50%; cursor: pointer; font-size: 1.1em; color: var(--text);
+            }
+            .mobile-chat-back:hover { background: #f0f2f5; }
+            #chat-body, #lounge-body { padding: 12px; }
+            .chat-input { gap: 4px; }
+            .chat-input input { min-width: 0; }
+
+            /* Lounge: channel list becomes a compact strip above the chat */
+            .lounge-container { flex-direction: column; }
+            .lounge-sidebar { flex-basis: auto; max-height: 30vh; overflow-y: auto; border-right: none; border-bottom: 1px solid #ddd; }
+
+            /* Floating popup chat & modals fit the screen */
+            .chat-window { width: 100% !important; right: 0 !important; left: 0 !important; }
+            .following-modal-content, .confirmation-modal-content { width: calc(100% - 32px); max-width: 420px; box-sizing: border-box; }
+            img, video { max-width: 100%; }
+        }
     </style>
     <script type="text/javascript"
         src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
@@ -6502,6 +6582,12 @@
             }).catch(error => console.error("Error fetching user list:", error));
         }
 
+        // Mobile: go from an open chat back to the chat list
+        function closeMobileChat() {
+            currentChatRecipient = null;
+            showPage('messages-page');
+        }
+
         function showMessagesHome() {
             currentChatRecipient = null; // Clear the active chat recipient
             showPage('messages-page');   // Then show the messages page
@@ -7355,7 +7441,13 @@
 
             chatBody.addEventListener('scroll', closeAllPopups);
 
+            // Mobile: show the chat pane instead of the chat list
+            document.querySelector('#messages-page .messages-container').classList.add('chat-open');
+
             header.innerHTML = `
+                <button type="button" class="mobile-chat-back" onclick="closeMobileChat()" aria-label="Back to chats">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                </button>
                 <a href="#" class="active-chat-link" onclick="showProfile('${currentChatRecipient}')">
                     <div class="profile-pic" data-user-pic-id="${currentChatRecipient}"></div>
                     <p>${user.name}</p>
@@ -8328,6 +8420,7 @@
                     renderActiveChat(); // Render the active chat if one is selected
                 } else {
                     // Reset the active chat pane if no chat is selected
+                    document.querySelector('#messages-page .messages-container').classList.remove('chat-open');
                     document.getElementById('active-chat-header').innerHTML = '';
                     document.getElementById('chat-body').innerHTML = '<div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; color:#8e8e8e;"><i class="fas fa-paper-plane" style="font-size:4em; margin-bottom:15px;"></i><h3 style="margin:0; font-size:1.4em;">Your Messages</h3><p>Select a message to chat.</p></div>';
                     // Ensure theme sidebar is hidden
