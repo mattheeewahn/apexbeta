@@ -1,0 +1,72 @@
+// APEX Android app: a Trusted Web Activity (TWA).
+// It opens https://horizonatlas.org in Chrome's engine, full-screen, with web push notifications.
+// Built in GitHub Actions (.github/workflows/build-apps.yml).
+plugins {
+    id 'com.android.application'
+}
+
+def twa = [
+    hostName       : 'horizonatlas.org',
+    launchUrl      : '/',
+    appName        : 'APEX',
+    themeColor     : '#FFFFFF',
+    navigationColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
+]
+
+android {
+    namespace 'org.horizonatlas.apex'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'org.horizonatlas.apex'
+        minSdk 21
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+
+        resValue 'string', 'appName', twa.appName
+        resValue 'string', 'launcherName', twa.appName
+        resValue 'string', 'hostName', twa.hostName
+        resValue 'string', 'launchUrl', 'https://' + twa.hostName + twa.launchUrl
+        resValue 'color', 'colorPrimary', twa.themeColor
+        resValue 'color', 'colorPrimaryDark', twa.themeColor
+        resValue 'color', 'navigationColor', twa.navigationColor
+        resValue 'color', 'navigationColorDark', twa.navigationColor
+        resValue 'color', 'backgroundColor', twa.backgroundColor
+        resValue 'bool', 'enableNotification', 'true'
+    }
+
+    // The keystore lives in the repo so every build has the same signature (updates install over
+    // the old version, and the server's /.well-known/assetlinks.json matches).
+    // Override the password with the APEX_KEYSTORE_PASSWORD secret for a real release.
+    signingConfigs {
+        release {
+            storeFile rootProject.file('apex-release.p12')
+            storeType 'pkcs12'
+            storePassword System.getenv('APEX_KEYSTORE_PASSWORD') ?: 'apexbeta-test'
+            keyAlias 'apex'
+            keyPassword System.getenv('APEX_KEYSTORE_PASSWORD') ?: 'apexbeta-test'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+}
