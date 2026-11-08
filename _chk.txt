@@ -1,0 +1,6 @@
+/health=200
+/=200
+/admin=200
+/sw.js=200
+/assets/logo-text.png=200
+/api/push/public-key=200

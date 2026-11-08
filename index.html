@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APEX</title>
+    <!-- Installable web app (PWA) + notifications -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="APEX">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.tiny.cloud/1/rcf8lia5mgb48sf87a4rrm8ywbo8fnmzelggfqr0xrqcnsah/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
@@ -4198,6 +4206,340 @@
 
         }
 
+        /* =====================================================================
+           APEX dark theme + layout (home side panel, messages tabs, profile card,
+           notifications, login hero). Overrides the light styles above.
+           ===================================================================== */
+        :root {
+            --background: #0b1020;
+            --text: #e6e9f0;
+            --surface: #121a2b;
+            --surface-2: #172034;
+            --surface-3: #1d2840;
+            --border: #1f2a40;
+            --muted: #8f9bb3;
+            --link: #5b9dff;
+            color-scheme: dark;
+        }
+        body { background: var(--background); color: var(--text); }
+        a { color: var(--link); }
+        h1, h2, h3, h4 { color: var(--text); }
+
+        /* Floating squares: dark, glowing */
+        .bg-item {
+            background-image: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(14, 165, 233, 0.05));
+            border: 1px solid rgba(59, 130, 246, 0.22);
+            box-shadow: 0 0 28px rgba(37, 99, 235, 0.18), inset 0 0 18px rgba(37, 99, 235, 0.08);
+        }
+
+        header {
+            background: rgba(13, 19, 33, 0.88);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .header-center p { color: var(--text); }
+
+        .side-nav { background: #0d1424; border-right: 1px solid var(--border); }
+        .nav-item:hover { background: var(--surface-2); }
+        .nav-item.active { background: var(--surface-3); }
+
+        footer { background: var(--surface); border-top: 1px solid var(--border); color: var(--muted); box-sizing: border-box; }
+        body.with-sidebar footer { width: calc(100% - 60px); }
+
+        .profile-section, .content-section, .auth-form, .profile-card, .aside-card {
+            background: rgba(18, 26, 43, 0.92);
+            border: 1px solid var(--border);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+            color: var(--text);
+        }
+        .content-section h3, .content-section h2 { color: var(--text); }
+        .more-link { color: var(--text) !important; background: none !important; -webkit-background-clip: initial !important; }
+        .profile-item .profile-name, .profile-name { color: var(--text); }
+
+        /* Inputs */
+        input, select, textarea,
+        .auth-form input, .auth-form select, .auth-form textarea, .input, .chat-input input {
+            background-color: #0e1628;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        input:hover, .input:focus, input:focus, select:focus, textarea:focus {
+            background-color: #101a30;
+            border-color: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            outline: none;
+        }
+        input::placeholder, textarea::placeholder, .input::placeholder { color: #6b7790; }
+        .icon { fill: #6b7790; }
+        input[type="date"] { color-scheme: dark; }
+
+        /* Buttons */
+        .fancy-back-button { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); }
+        .fancy-back-button:hover { background: var(--surface-3); }
+        .secondary-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            background: var(--surface-3) !important; background-image: none !important;
+            color: var(--text) !important; border: 1px solid var(--border) !important;
+        }
+        .secondary-btn:hover { background: #24314d !important; }
+        .login-btn { background-image: linear-gradient(to right, #2563eb, #14b8a6); }
+
+        /* Dropdowns / modals */
+        .profile-menu-dropdown, .following-modal-content, .confirmation-modal-content, .modal-content,
+        .emoji-panel, .theme-sidebar {
+            background-color: var(--surface-2) !important;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .profile-menu-item { color: var(--text); }
+        .profile-menu-item:hover { background: var(--surface-3); }
+        .context-menu-divider, hr { border-color: var(--border); }
+
+        /* ---------- Home: feed + right panel ---------- */
+        .home-layout { display: flex; gap: 20px; max-width: 1100px; margin: 0 auto; align-items: flex-start; }
+        .home-feed { flex: 1 1 auto; min-width: 0; }
+        .home-aside { flex: 0 0 280px; position: sticky; top: 12px; display: flex; flex-direction: column; gap: 14px; }
+        .aside-card { border-radius: 12px; padding: 14px; }
+        .aside-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .aside-card-header h3 { margin: 0; font-size: 0.95em; color: var(--muted); font-weight: 600; }
+        .aside-card-header a { font-size: 0.85em; text-decoration: none; }
+        .suggested-list { list-style: none; margin: 0; padding: 0; }
+        .suggested-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; position: relative; }
+        .suggested-who { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; text-decoration: none; color: var(--text); }
+        .suggested-who .profile-pic { width: 36px; height: 36px; flex-shrink: 0; margin: 0; }
+        .suggested-text { display: flex; flex-direction: column; min-width: 0; }
+        .suggested-name { font-weight: 600; font-size: 0.92em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .suggested-sub { font-size: 0.8em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .suggested-follow { background: none; border: none; color: var(--link); font-weight: 700; cursor: pointer; padding: 4px 2px; font-size: 0.88em; }
+        .suggested-follow.following { color: var(--muted); }
+        .suggested-empty { color: var(--muted); font-size: 0.9em; padding: 6px 0; }
+        .aside-links { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 0 4px; }
+        .aside-links a { color: var(--muted); font-size: 0.8em; text-decoration: none; }
+        .aside-links a:hover { color: var(--text); }
+        .aside-copyright { color: #5f6b84; font-size: 0.78em; margin: 0 4px; }
+        @media (max-width: 1100px) { .home-aside { display: none; } }
+
+        /* ---------- Messages ---------- */
+        .messages-container { background: transparent; }
+        .chat-list-pane { background: #0d1424; border-right: 1px solid var(--border); }
+        .chat-tabs { display: flex; gap: 6px; padding: 10px 10px 6px; }
+        .chat-tab {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 8px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9em;
+            background: transparent; color: var(--muted);
+        }
+        .chat-tab:hover { background: var(--surface-2); color: var(--text); }
+        .chat-tab.active { background: var(--surface-3); color: #a5b4fc; }
+        .chat-search { position: relative; margin: 4px 10px 10px; }
+        .chat-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6b7790; font-size: 0.85em; }
+        .chat-search input { width: 100%; box-sizing: border-box; padding: 9px 12px 9px 34px; border-radius: 10px; margin: 0; }
+        .chat-list { border-top: 1px solid var(--border); }
+        .chat-list.hidden { display: none; }
+        .chat-list-item:hover { background-color: var(--surface-2); }
+        .chat-list-item.active { background-color: var(--surface-3); }
+        .chat-list-item .chat-info .name { color: var(--text); }
+        .chat-list-item.unread .name { color: #fff; }
+        .chat-list-item .chat-info .snippet { color: var(--muted); }
+        .chat-list-empty { color: var(--muted); padding: 16px; font-size: 0.9em; }
+        .lounge-pic { display: flex; align-items: center; justify-content: center; color: var(--muted); background-color: var(--surface-3); }
+        .active-chat-pane { background: transparent; }
+        .active-chat-header { background: #0d1424; border-bottom: 1px solid var(--border); }
+        .active-chat-link, .active-chat-link p { color: var(--text); }
+        .chat-input { background: #0d1424; border-top: 1px solid var(--border); }
+        .chat-message.received p { background-color: var(--surface-3); color: var(--text); }
+        .message-timestamp { color: var(--muted); }
+        .lounge-sidebar { background: #0d1424; border-right: 1px solid var(--border); }
+        .lounge-sidebar-header { border-bottom-color: var(--border); }
+        .action-btn { background-color: var(--surface-3); color: var(--text); }
+        .chat-context-separator { color: var(--muted); }
+        .chat-context-separator::before, .chat-context-separator::after { background-color: var(--border); }
+        #messages-page .chat-input, #lounge-page .chat-input { border-top: 1px solid var(--border) !important; }
+
+        /* Lounge / circuit circles without a cover image */
+        .circuit-card.no-image {
+            background-color: var(--surface-3);
+            background-image: radial-gradient(circle at 30% 25%, rgba(59, 130, 246, 0.35), transparent 60%);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .circuit-card.no-image h4, .circuit-card.no-image p { color: var(--text); text-shadow: none; }
+
+        /* "+ New Lounge / New Circuit": dark circle with a dashed outline */
+        .circuit-card.create-circuit-card {
+            background: transparent !important; background-image: none !important;
+            border: 2px dashed rgba(230, 233, 240, 0.55) !important; box-shadow: none;
+        }
+        .circuit-card.create-circuit-card::before { display: none; }
+        .circuit-card.create-circuit-card:hover { border-color: #e6e9f0 !important; background: rgba(255, 255, 255, 0.04) !important; }
+        .circuit-card.create-circuit-card h4, .circuit-card.create-circuit-card p { color: #fff; text-shadow: none; }
+
+        /* Home search: rounded pill with the icon inside */
+        #index-page .group .input { border-color: var(--border); background-color: rgba(14, 22, 40, 0.8); }
+        #index-page .group { max-width: 320px; }
+        #index-page .group .icon { left: 14px; z-index: 1; }
+        #index-page .group .input { padding: 9px 14px 9px 40px; border-radius: 999px; font-family: inherit; }
+
+        /* ---------- Profile ---------- */
+        #profile-page .profile-card { max-width: 520px; margin: 24px auto; padding: 22px; border-radius: 14px; text-align: left; }
+        .profile-top { display: flex; align-items: center; gap: 20px; }
+        #profile-page .profile-pic-large { width: 96px; height: 96px; margin: 0; flex-shrink: 0; }
+        .profile-identity { min-width: 0; }
+        .profile-identity h2 { font-size: 1.35em; margin: 0; }
+        .user-username-text { color: var(--muted); margin: 2px 0 8px; }
+        #profile-page .profile-stats {
+            justify-content: flex-start; flex-wrap: wrap; gap: 4px 16px; padding: 0; margin: 0; border: none; text-align: left;
+        }
+        #profile-page .stat-item { flex-direction: row; align-items: baseline; gap: 4px; }
+        #profile-page .stat-item span:first-child { font-size: 1em; color: var(--text); }
+        #profile-page .stat-item span:last-child { color: var(--muted); font-size: 0.9em; }
+        #profile-page .user-bio-text { font-style: normal; color: #cdd5e4; margin: 16px 0 8px; word-break: break-word; }
+        .profile-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 8px 0 4px; }
+        .profile-meta p { margin: 0; color: #aab4c8; font-size: 0.9em; }
+        .profile-meta p:empty { display: none; }
+        .meta-nationality::before, .meta-email::before {
+            font-family: "Font Awesome 6 Free"; font-weight: 900; margin-right: 6px; color: var(--muted);
+        }
+        .meta-nationality::before { content: "\f0ac"; }
+        .meta-email::before { content: "\f0e0"; }
+        #profile-page .profile-buttons { display: flex; gap: 10px; margin-top: 16px; }
+        #profile-page .profile-buttons button { flex: 1; padding: 9px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        #profile-page .follow-btn { background-image: linear-gradient(to right, #2563eb, #14b8a6); border: none; color: #fff; }
+        #profile-page .follow-btn.following { background: var(--surface-3); background-image: none; }
+
+        /* ---------- Notifications ---------- */
+        .notifications-panel { max-width: 560px; margin: 16px auto; border-radius: 14px; padding: 14px 16px; }
+        .notif-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+        .notif-filters::-webkit-scrollbar { display: none; }
+        .notif-chip {
+            flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 0.85em; font-weight: 600;
+            background: var(--surface-2); color: #c3cad8; border: 1px solid var(--border);
+        }
+        .notif-chip:hover { background: var(--surface-3); }
+        .notif-chip.active { background: #e6e9f0; color: #0b1020; border-color: #e6e9f0; }
+        .notif-date-heading { color: var(--muted); font-size: 0.8em; font-weight: 700; padding: 14px 4px 6px; }
+        .notif-empty { color: var(--muted); padding: 20px 4px; }
+        .notification-item { border-bottom: none; border-radius: 10px; padding: 10px 6px; gap: 10px; }
+        .notification-item:hover { background-color: var(--surface-2); }
+        .notification-item.unread { background-color: rgba(37, 99, 235, 0.08); }
+        .notif-avatar { position: relative; flex-shrink: 0; }
+        .notif-avatar .profile-pic { width: 42px !important; height: 42px !important; margin: 0 !important; }
+        .notif-type-icon {
+            position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff;
+            background: #2563eb; border: 2px solid var(--surface);
+        }
+        .notification-text { flex: 1; min-width: 0; }
+        .notification-text p { margin: 0; color: var(--text); font-size: 0.92em; }
+        .notification-text .message-timestamp { margin-left: 4px; font-size: 0.85em; }
+        .follow-back-btn {
+            flex-shrink: 0; border: none; border-radius: 999px; padding: 7px 14px; cursor: pointer;
+            color: #fff; font-weight: 700; font-size: 0.82em; position: relative;
+            background-image: linear-gradient(to right, #2563eb, #0ea5e9);
+        }
+        .follow-back-btn.following { background: var(--surface-3); color: var(--muted); }
+
+        /* ---------- Login page + "Discover APEX" hero ---------- */
+        #login-page main { overflow-y: auto; }
+        #login-page .auth-form { margin-top: 12vh; }
+        .discover-link {
+            display: flex; flex-direction: column; align-items: center; gap: 4px; width: max-content;
+            margin: 9vh auto 0; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 0.9em;
+        }
+        .discover-link i { color: var(--link); animation: discoverBounce 1.6s ease-in-out infinite; }
+        @keyframes discoverBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+        .discover-hero {
+            display: flex; align-items: center; justify-content: center; gap: 6vw;
+            max-width: 1000px; min-height: 80vh; margin: 0 auto; padding: 40px 20px;
+        }
+        .discover-logo { width: min(260px, 38vw); height: auto; filter: drop-shadow(0 0 40px rgba(37, 99, 235, 0.35)); }
+        .discover-text { max-width: 480px; }
+        .discover-text h2 {
+            font-size: clamp(1.8em, 4vw, 2.6em); line-height: 1.15; margin: 0 0 16px;
+            background-image: linear-gradient(to right, #2563eb, #3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .discover-text p { color: #c3cad8; line-height: 1.6; font-size: 1.05em; }
+        @media (max-width: 768px) {
+            .discover-hero { flex-direction: column; text-align: center; min-height: auto; gap: 24px; }
+            #login-page .auth-form { margin-top: 6vh; }
+            #profile-page .profile-card { margin: 12px auto; }
+            #profile-page .profile-pic-large { width: 76px; height: 76px; }
+        }
+
+        /* ===================== Voice / video calls ===================== */
+        .chat-call-buttons { margin-left: auto; display: flex; gap: 4px; margin-right: 6px; }
+        .chat-call-btn {
+            width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+            background: transparent; color: var(--text, #e6e9f0); font-size: 1.05em;
+        }
+        .chat-call-btn:hover { background: var(--surface-3, #1d2840); }
+        .call-overlay {
+            position: fixed; inset: 0; z-index: 3000; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: max(48px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+            background: radial-gradient(circle at 50% 30%, #1b2a4a 0%, #0b1020 70%);
+            color: #fff;
+        }
+        .call-overlay.hidden { display: none; }
+        .call-remote-video {
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+            background: #000; opacity: 0; transition: opacity .3s; pointer-events: none;
+        }
+        .call-overlay.has-remote-video .call-remote-video { opacity: 1; }
+        .call-overlay.has-remote-video .call-info { opacity: 0.9; }
+        .call-overlay.has-remote-video .call-avatar { display: none; }
+        .call-local-video {
+            position: absolute; right: 16px; top: max(16px, env(safe-area-inset-top)); z-index: 2;
+            width: min(28vw, 200px); aspect-ratio: 3 / 4; object-fit: cover; transform: scaleX(-1);
+            border-radius: 12px; border: 2px solid rgba(255,255,255,.25); background: #111;
+            box-shadow: 0 6px 20px rgba(0,0,0,.4);
+        }
+        .call-local-video.hidden { display: none; }
+        .call-local-video.camera-off { opacity: 0.25; }
+        .call-info { position: relative; z-index: 1; text-align: center; margin-top: 6vh; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
+        .call-avatar { width: 120px !important; height: 120px !important; margin: 0 auto 16px !important; }
+        .call-info h2 { margin: 0; font-size: 1.6em; color: #fff; }
+        .call-info p { margin: 8px 0 0; color: #c3cad8; font-size: 1em; }
+        .call-controls { position: relative; z-index: 1; display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+        .call-controls.hidden { display: none; }
+        .call-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+            width: 68px; height: 68px; border-radius: 50%; border: none; cursor: pointer;
+            background: rgba(255,255,255,.14); color: #fff; font-size: 1.35em;
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        }
+        .call-btn span { position: absolute; transform: translateY(52px); font-size: 0.55em; color: #c3cad8; }
+        .call-btn { position: relative; margin-bottom: 18px; }
+        .call-btn:hover { background: rgba(255,255,255,.22); }
+        .call-btn.off { background: #fff; color: #0b1020; }
+        .call-btn-accept { background: #16a34a; }
+        .call-btn-accept:hover { background: #15803d; }
+        .call-btn-decline { background: #dc2626; }
+        .call-btn-decline:hover { background: #b91c1c; }
+        .call-btn.hidden { display: none; }
+
+        /* ===================== Notification opt-in banner ===================== */
+        .notif-banner {
+            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+            z-index: 2000; display: flex; align-items: center; gap: 10px;
+            max-width: calc(100% - 24px); box-sizing: border-box;
+            padding: 10px 12px 10px 16px; border-radius: 12px;
+            background: var(--surface-2, #172034); color: var(--text); border: 1px solid var(--border, #1f2a40);
+            box-shadow: 0 6px 24px rgba(0,0,0,.35);
+            font-size: 0.95em;
+        }
+        .notif-banner.hidden { display: none; }
+        .notif-banner > i { color: var(--primary-solid, #0066ff); }
+        .notif-banner-btn {
+            border: none; border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap;
+            color: #fff; background-image: linear-gradient(to right, #0033ff, #00ffbf); font-size: 0.95em;
+        }
+        .notif-banner-close {
+            border: none; background: none; cursor: pointer; font-size: 1.4em; line-height: 1;
+            color: #888; padding: 0 4px;
+        }
+
         /* ===================== Mobile layout (phones / narrow screens) ===================== */
         .mobile-chat-back { display: none; }
 
@@ -4288,6 +4630,45 @@
 </head>
 <body>
     <div id="notification-toast-container"></div>
+    <!-- Voice / video call screen -->
+    <div id="call-overlay" class="call-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="call-peer-name">
+        <video id="call-remote-video" class="call-remote-video" autoplay playsinline></video>
+        <video id="call-local-video" class="call-local-video hidden" autoplay playsinline muted></video>
+        <div class="call-info">
+            <div id="call-avatar" class="profile-pic call-avatar"></div>
+            <h2 id="call-peer-name">Calling</h2>
+            <p id="call-status" aria-live="polite">Calling…</p>
+        </div>
+        <div id="call-controls-incoming" class="call-controls hidden">
+            <button type="button" class="call-btn call-btn-decline" onclick="declineCall()" aria-label="Decline">
+                <i class="fas fa-phone-slash" aria-hidden="true"></i><span>Decline</span>
+            </button>
+            <button type="button" id="call-accept-audio" class="call-btn call-btn-accept" onclick="acceptCall(false)" aria-label="Accept with audio only">
+                <i class="fas fa-phone" aria-hidden="true"></i><span>Audio</span>
+            </button>
+            <button type="button" id="call-accept-video" class="call-btn call-btn-accept" onclick="acceptCall(true)" aria-label="Accept with video">
+                <i class="fas fa-video" aria-hidden="true"></i><span>Video</span>
+            </button>
+        </div>
+        <div id="call-controls-active" class="call-controls hidden">
+            <button type="button" id="call-mute-btn" class="call-btn" onclick="toggleCallMute()" aria-pressed="false" aria-label="Mute microphone">
+                <i class="fas fa-microphone" aria-hidden="true"></i><span>Mute</span>
+            </button>
+            <button type="button" id="call-camera-btn" class="call-btn" onclick="toggleCallCamera()" aria-pressed="false" aria-label="Turn camera off">
+                <i class="fas fa-video" aria-hidden="true"></i><span>Camera</span>
+            </button>
+            <button type="button" class="call-btn call-btn-decline" onclick="hangUp()" aria-label="End call">
+                <i class="fas fa-phone-slash" aria-hidden="true"></i><span>End</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="notif-banner" class="notif-banner hidden" role="region" aria-label="Notifications">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        <span id="notif-banner-text">Get notified when friends message you.</span>
+        <button type="button" id="notif-banner-enable" class="notif-banner-btn" onclick="enableNotifications()">Turn on</button>
+        <button type="button" class="notif-banner-close" onclick="dismissNotifBanner()" aria-label="Dismiss">&times;</button>
+    </div>
     <div class="background-animations">
         <div class="bg-item"></div>
         <div class="bg-item"></div>
@@ -4320,7 +4701,7 @@
         <header>
             <div class="header-left">
                 <div class="logo">
-                    <img src="/api/asset/logo_text" alt="APEX Logo" class="logo-img">
+                    <img src="/assets/logo-text.png" alt="APEX Logo" class="logo-img">
                 </div>
             </div>
             <div class="header-center">
@@ -4341,6 +4722,21 @@
                 </button>
                 <a href="#" onclick="prepareSignupForm('personal')">Register</a>
             </div>
+
+            <a href="#discover-apex" class="discover-link" onclick="event.preventDefault(); document.getElementById('discover-apex').scrollIntoView({behavior: 'smooth'});">
+                Discover APEX
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </a>
+
+            <section id="discover-apex" class="discover-hero" aria-labelledby="discover-title">
+                <img src="/assets/logo-mark.png" alt="" class="discover-logo">
+                <div class="discover-text">
+                    <h2 id="discover-title">Connecting the<br>Pieces Together</h2>
+                    <p>APEX helps people from every country meet, chat, and become friends.
+                        Share your culture, practice languages, and join lounges built around what you love,
+                        in a safe space protected by active moderators.</p>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -4503,7 +4899,7 @@
         <header>
             <div class="header-left">
                 <a href="#" class="logo" onclick="showPage('index-page')">
-                    <img src="/api/asset/logo_text" alt="APEX Logo" class="logo-img">
+                    <img src="/assets/logo-text.png" alt="APEX Logo" class="logo-img">
                 </a>
             </div>
             <div class="header-center">
@@ -4518,7 +4914,9 @@
             </div>
         </header>
 
-        <main>
+        <main class="home-main">
+          <div class="home-layout">
+           <div class="home-feed">
             <div class="profile-section">
                 <div class="profile-row-scroller">
                     <div class="profile-row" id="profile-list">
@@ -4544,6 +4942,25 @@
                 </div>
                 <a href="#" class="more-link" onclick="showPage('all-lounges-page')">More</a>
             </div>
+           </div>
+
+           <aside class="home-aside" aria-label="Suggestions">
+                <div class="aside-card">
+                    <div class="aside-card-header">
+                        <h3>Suggested for you</h3>
+                        <a href="#" onclick="event.preventDefault(); showPage('all-profiles-page')">See all</a>
+                    </div>
+                    <ul id="suggested-list" class="suggested-list"></ul>
+                </div>
+                <nav class="aside-links" aria-label="About APEX">
+                    <a href="#" onclick="event.preventDefault(); showTosPage();">Terms</a>
+                    <a href="#" onclick="event.preventDefault(); showTosPage();">Privacy</a>
+                    <a href="#" onclick="event.preventDefault(); showReportPage(null, null);">Report</a>
+                    <a href="mailto:support@prototype-neo.com">Contact</a>
+                </nav>
+                <p class="aside-copyright">&copy; 2026 APEX Platforms</p>
+           </aside>
+          </div>
         </main>
     </div>
 
@@ -4708,27 +5125,32 @@
         <main>
             <main>
                 <div class="profile-card">
-                    <div class="profile-pic-large"></div>
-                    <h2 id="userName">Name</h2>
-                    <p id="userUsername" class="user-username-text"></p>
+                    <div class="profile-top">
+                        <div class="profile-pic-large"></div>
+                        <div class="profile-identity">
+                            <h2 id="userName">Name</h2>
+                            <p id="userUsername" class="user-username-text"></p>
+                            <div id="profile-stats-bar" class="profile-stats" style="display: none;">
+                                <div class="stat-item">
+                                    <span id="post-count">0</span>
+                                    <span>posts</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span id="follower-count">-</span>
+                                    <span>followers</span>
+                                </div>
+                                <div id="following-stat" class="stat-item">
+                                    <span id="following-count">0</span>
+                                    <span>following</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <p id="userBio" class="user-bio-text"></p>
-                    <p id="userSchool">Nationality: South Korea</p>
-                    <p id="userAge">Grade: G9</p>
-                    <p id="userEmail">Email: user@example.com</p>
-
-                    <div id="profile-stats-bar" class="profile-stats" style="display: none;">
-                        <div class="stat-item">
-                            <span id="post-count">0</span>
-                            <span>Posts</span>
-                        </div>
-                        <div class="stat-item">
-                            <span id="follower-count">-</span>
-                            <span>Followers</span>
-                        </div>
-                        <div id="following-stat" class="stat-item">
-                            <span id="following-count">0</span>
-                            <span>Following</span>
-                        </div>
+                    <div class="profile-meta">
+                        <p id="userSchool" class="meta-nationality" title="Nationality">South Korea</p>
+                        <p id="userAge"></p>
+                        <p id="userEmail" class="meta-email" title="Email">user@example.com</p>
                     </div>
                     </div>
             </main>
@@ -4805,11 +5227,22 @@
             <div class="messages-container">
 
                 <div class="chat-list-pane">
-                    <div class="chat-list-header">
-                        <h4>Chats</h4>
+                    <div class="chat-tabs" role="tablist" aria-label="Chat type">
+                        <button type="button" id="chat-tab-direct" class="chat-tab active" role="tab" aria-selected="true" onclick="switchChatTab('direct')">
+                            <i class="fas fa-comment-dots" aria-hidden="true"></i> Direct
+                        </button>
+                        <button type="button" id="chat-tab-lounges" class="chat-tab" role="tab" aria-selected="false" onclick="switchChatTab('lounges')">
+                            <i class="fas fa-users" aria-hidden="true"></i> Lounges
+                        </button>
+                    </div>
+                    <div class="chat-search">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <label for="chat-search-input" class="visually-hidden">Search chats</label>
+                        <input type="search" id="chat-search-input" placeholder="Search chats" autocomplete="off" oninput="filterChatList()">
                     </div>
                     <ul id="chat-list" class="chat-list">
                         </ul>
+                    <ul id="chat-lounge-list" class="chat-list hidden"></ul>
                 </div>
 
                 <div class="active-chat-pane">
@@ -4859,18 +5292,18 @@
 
     <nav class="side-nav">
         <div class="nav-top">
-            <a href="#" class="nav-item" onclick="showPage('index-page')"><i class="fas fa-home"></i></a>
-            <a href="#" class="nav-item" onclick="showMessagesHome()"><i class="fas fa-envelope"></i><span id="message-notification-badge" class="notification-badge" style="display: none;"></span></a>
-            <a href="#" class="nav-item" onclick="showPage('explore-page')"><i class="fas fa-compass"></i></a>
-            <a href="#" class="nav-item" onclick="showPage('notifications-page')"><i class="fas fa-bell"></i><span id="general-notification-badge" class="notification-badge" style="display: none;"></span></a>
-            <a href="#" id="terminal-nav-btn" class="nav-item" onclick="showPage('terminal-page')" style="display: none;"><i class="fas fa-terminal"></i></a>
+            <a href="#" class="nav-item" data-nav="home" aria-label="Home" onclick="showPage('index-page')"><i class="fas fa-home" aria-hidden="true"></i></a>
+            <a href="#" class="nav-item" data-nav="messages" aria-label="Messages" onclick="showMessagesHome()"><i class="fas fa-envelope" aria-hidden="true"></i><span id="message-notification-badge" class="notification-badge" style="display: none;"></span></a>
+            <a href="#" class="nav-item" data-nav="explore" aria-label="Explore" onclick="showPage('explore-page')"><i class="fas fa-compass" aria-hidden="true"></i></a>
+            <a href="#" class="nav-item" data-nav="notifications" aria-label="Notifications" onclick="showPage('notifications-page')"><i class="fas fa-bell" aria-hidden="true"></i><span id="general-notification-badge" class="notification-badge" style="display: none;"></span></a>
+            <a href="#" id="terminal-nav-btn" class="nav-item" data-nav="terminal" aria-label="Terminal" onclick="showPage('terminal-page')" style="display: none;"><i class="fas fa-terminal" aria-hidden="true"></i></a>
             <a href="/admin" id="admin-nav-btn" class="nav-item" target="_blank" rel="noopener" title="Admin dashboard" aria-label="Admin dashboard" style="display: none;"><i class="fas fa-gauge-high" aria-hidden="true"></i></a>
         </div>
         <div class="nav-bottom">
-            <a href="#" class="nav-item" onclick="showProfile('me')">
+            <a href="#" class="nav-item" data-nav="profile" aria-label="My profile" onclick="showProfile('me')">
                 <div class="profile-pic nav-user-pic" data-user-pic-id="me"></div>
             </a>
-            <a href="#" class="nav-item" onclick="showReportPage(null, null)"><i class="fas fa-bullhorn"></i></a>
+            <a href="#" class="nav-item" aria-label="Report a problem" onclick="showReportPage(null, null)"><i class="fas fa-bullhorn" aria-hidden="true"></i></a>
         </div>
     </nav>
 
@@ -6427,7 +6860,9 @@
             showPage('create-lounge-page');
         }
 
-        function handleLogout() {
+        async function handleLogout() {
+            // Stop push notifications for this account on this device before the token is revoked
+            await disablePushForThisDevice();
              fetch(`${API_BASE_URL}/api/logout`, {
                 method: 'POST',
                 headers: {
@@ -6545,6 +6980,7 @@
                     initializeSocket();
                     fetchNotifications();
                     showPage('index-page');
+                    handleDeepLink(window.location.href); // e.g. opened from a notification
                 })
                 .catch(error => {
                     // Token is invalid or expired, clear it and show the login page
@@ -6575,10 +7011,12 @@
                         rank: user.rank,
                         profilePicUrl: user.profile_pic,
                         account_type: user.account_type,
+                        nationality: user.nationality,
                         "is_birthday": user.is_birthday // 👈 ADD THIS LINE
                     };
                 });
                 renderProfiles();
+                renderSuggested(users);
             }).catch(error => console.error("Error fetching user list:", error));
         }
 
@@ -6803,6 +7241,176 @@
             localStorage.removeItem('apiToken');
             apiToken = null;
             showPage('login-page');
+        }
+
+        // ---------- Notifications: web push (browser / installed app) + local (desktop app) ----------
+        const PUSH_SUPPORTED = window.isSecureContext && 'serviceWorker' in navigator
+            && 'PushManager' in window && 'Notification' in window;
+        let swRegistration = null;
+        let pushActive = false; // true when this device receives server push, so we skip local duplicates
+
+        function decodeEntities(value) {
+            // Server-stored text is HTML-escaped; notifications need plain text.
+            const t = document.createElement('textarea');
+            t.innerHTML = String(value ?? '');
+            return t.value;
+        }
+
+        function urlBase64ToUint8Array(b64) {
+            const padded = (b64 + '='.repeat((4 - b64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+            return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+        }
+
+        if (window.isSecureContext && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => { swRegistration = reg; if (apiToken) setupNotificationsAfterLogin(); })
+                .catch(err => console.warn('Service worker registration failed:', err));
+            // A notification was clicked while the app was already open
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'apex-open-url') handleDeepLink(event.data.url);
+            });
+        }
+
+        async function subscribeToPush() {
+            const res = await fetch(`${API_BASE_URL}/api/push/public-key`);
+            if (!res.ok) throw new Error('Push is not available on this server.');
+            const { key } = await res.json();
+            const serverKey = urlBase64ToUint8Array(key);
+            let sub = await swRegistration.pushManager.getSubscription();
+            // Re-subscribe if the server's key changed (e.g. a fresh database)
+            if (sub && sub.options && sub.options.applicationServerKey) {
+                const current = new Uint8Array(sub.options.applicationServerKey);
+                if (current.length !== serverKey.length || current.some((b, i) => b !== serverKey[i])) {
+                    await sub.unsubscribe();
+                    sub = null;
+                }
+            }
+            return sub || swRegistration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: serverKey });
+        }
+
+        // Make sure this device's push subscription is registered for the logged-in account.
+        async function syncPushSubscription() {
+            pushActive = false;
+            if (!PUSH_SUPPORTED || !swRegistration || !apiToken || Notification.permission !== 'granted') return;
+            try {
+                const sub = await subscribeToPush();
+                const res = await fetch(`${API_BASE_URL}/api/push/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiToken}` },
+                    body: JSON.stringify(sub.toJSON())
+                });
+                pushActive = res.ok;
+            } catch (err) {
+                // e.g. the desktop app has no push service; local notifications still work
+                console.warn('Push subscription unavailable:', err && err.message);
+            }
+        }
+
+        function setupNotificationsAfterLogin() {
+            syncPushSubscription().finally(updateNotifBanner);
+        }
+
+        async function enableNotifications() {
+            hideNotifBanner();
+            if (!('Notification' in window)) return;
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                showToast('Notifications are blocked. You can allow them in your browser settings.', 'error');
+                return;
+            }
+            await syncPushSubscription();
+            showToast(pushActive ? 'Notifications are on.' : 'Notifications are on while APEX is open.', 'success');
+        }
+
+        async function disablePushForThisDevice() {
+            hideNotifBanner();
+            pushActive = false;
+            try {
+                if (!swRegistration || !apiToken) return;
+                const sub = await swRegistration.pushManager.getSubscription();
+                if (!sub) return;
+                await fetch(`${API_BASE_URL}/api/push/unsubscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiToken}` },
+                    body: JSON.stringify({ endpoint: sub.endpoint })
+                });
+                await sub.unsubscribe();
+            } catch (_) { /* logging out must never fail because of this */ }
+        }
+
+        function showLocalNotification(title, body, url, tag) {
+            if (pushActive) return; // the server push already covers this device
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            if (document.visibilityState === 'visible' && document.hasFocus()) return;
+            const options = { body, tag, icon: '/icons/icon-192.png', data: { url } };
+            try {
+                const n = new Notification(title, options);
+                n.onclick = () => { window.focus(); handleDeepLink(url); n.close(); };
+            } catch (_) {
+                // Android Chrome only allows notifications through the service worker
+                if (swRegistration) swRegistration.showNotification(title, options);
+            }
+        }
+
+        function updateNotifBanner() {
+            const banner = document.getElementById('notif-banner');
+            if (!banner) return;
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+            let text = null, showButton = true;
+            if (!apiToken || localStorage.getItem('apexNotifBannerDismissed')) {
+                text = null;
+            } else if ('Notification' in window && Notification.permission === 'default') {
+                text = 'Get notified when friends message you.';
+            } else if (isIOS && !standalone && !('Notification' in window)) {
+                text = 'For notifications on iPhone, tap Share, then "Add to Home Screen".';
+                showButton = false;
+            }
+            if (!text) { banner.classList.add('hidden'); return; }
+            document.getElementById('notif-banner-text').textContent = text;
+            document.getElementById('notif-banner-enable').style.display = showButton ? '' : 'none';
+            banner.classList.remove('hidden');
+        }
+
+        function hideNotifBanner() {
+            const banner = document.getElementById('notif-banner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        function dismissNotifBanner() {
+            localStorage.setItem('apexNotifBannerDismissed', '1');
+            hideNotifBanner();
+        }
+
+        // Open the screen a notification points to: /?dm=<username> or /?view=notifications
+        function handleDeepLink(url) {
+            let u;
+            try { u = new URL(url, window.location.origin); } catch (_) { return; }
+            const dm = u.searchParams.get('dm');
+            const view = u.searchParams.get('view');
+            const profileUser = u.searchParams.get('user');
+            if ((dm || view || profileUser) && new URLSearchParams(window.location.search).toString()) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            if (!apiToken) return;
+            if (dm) openChatWithUser(dm);
+            else if (view === 'notifications') showPage('notifications-page');
+            else if (profileUser) openProfileByUsername(profileUser);
+        }
+
+        function openChatWithUser(username) {
+            if (profileData[username] && profileData[username].name) { openChat(username); return; }
+            fetch(`${API_BASE_URL}/api/user/${encodeURIComponent(username)}`, {
+                headers: { 'Authorization': `Bearer ${apiToken}` }
+            })
+            .then(r => r.ok ? r.json() : null)
+            .then(u => {
+                if (!u) return;
+                profileData[username] = { ...(profileData[username] || {}), name: u.fullName, username: u.username,
+                                          rank: u.rank, profilePicUrl: u.profile_pic };
+                openChat(username);
+            })
+            .catch(() => {});
         }
 
         function handleGoogleLogin() {
@@ -7032,6 +7640,481 @@
 
                 profileList.appendChild(profileItem);
                 updateProfilePictures(key);
+            });
+        }
+
+        // ---------- 1:1 voice / video calls (WebRTC) ----------
+        // Media flows directly between the two browsers; Socket.IO only carries the signaling.
+        let activeCall = null;
+        let callIceConfig = null;
+        const CALL_RING_TIMEOUT_MS = 40000;
+
+        function newCallId() {
+            const a = new Uint8Array(12);
+            crypto.getRandomValues(a);
+            return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function getCallIceConfig() {
+            if (callIceConfig) return callIceConfig;
+            try {
+                const r = await fetch(`${API_BASE_URL}/api/call/config`, { headers: { 'Authorization': `Bearer ${apiToken}` } });
+                if (r.ok) callIceConfig = await r.json();
+            } catch (_) { /* fall back below */ }
+            return callIceConfig || { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        }
+
+        function callsSupported() {
+            return !!(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        }
+
+        function peerDisplayName(username, fallback) {
+            const p = profileData[username];
+            return decodeEntities((p && p.name) || fallback || username);
+        }
+
+        // Simple ring tone using WebAudio (no audio file needed)
+        let ringTimer = null, ringCtx = null;
+        function startRingtone(incoming) {
+            stopRingtone();
+            try {
+                ringCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const beep = () => {
+                    if (!ringCtx) return;
+                    const now = ringCtx.currentTime;
+                    [0, 0.4].forEach(offset => {
+                        const osc = ringCtx.createOscillator(), gain = ringCtx.createGain();
+                        osc.frequency.value = incoming ? 880 : 440;
+                        gain.gain.setValueAtTime(0.0001, now + offset);
+                        gain.gain.exponentialRampToValueAtTime(0.15, now + offset + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.3);
+                        osc.connect(gain).connect(ringCtx.destination);
+                        osc.start(now + offset); osc.stop(now + offset + 0.32);
+                    });
+                };
+                beep();
+                ringTimer = setInterval(beep, incoming ? 2000 : 3000);
+            } catch (_) { /* autoplay blocked: the screen still shows the call */ }
+        }
+        function stopRingtone() {
+            clearInterval(ringTimer); ringTimer = null;
+            if (ringCtx) { ringCtx.close().catch(() => {}); ringCtx = null; }
+        }
+
+        function showCallScreen(mode) {
+            const overlay = document.getElementById('call-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.toggle('video-call', activeCall.kind === 'video');
+            document.getElementById('call-peer-name').textContent = activeCall.peerName;
+            document.getElementById('call-controls-incoming').classList.toggle('hidden', mode !== 'incoming');
+            document.getElementById('call-controls-active').classList.toggle('hidden', mode === 'incoming');
+            document.getElementById('call-accept-video').classList.toggle('hidden', activeCall.kind !== 'video');
+            document.getElementById('call-camera-btn').classList.toggle('hidden', activeCall.kind !== 'video');
+            const avatar = document.getElementById('call-avatar');
+            avatar.setAttribute('data-user-pic-id', activeCall.peer);
+            if (activeCall.peerPic) avatar.style.setProperty('--avatar-image', `url(${activeCall.peerPic})`);
+            else updateProfilePictures(activeCall.peer);
+            const focusTarget = mode === 'incoming' ? '#call-accept-audio' : '#call-controls-active .call-btn-decline';
+            setTimeout(() => { const el = document.querySelector(focusTarget); if (el) el.focus(); }, 50);
+        }
+
+        function setCallStatus(text) {
+            document.getElementById('call-status').textContent = text;
+        }
+
+        function emitCall(event, extra = {}) {
+            if (socket && activeCall) socket.emit(event, { to: activeCall.peer, call_id: activeCall.id, ...extra });
+        }
+
+        async function createPeerConnection() {
+            const pc = new RTCPeerConnection(await getCallIceConfig());
+            activeCall.pc = pc;
+            activeCall.remoteStream = new MediaStream();
+            document.getElementById('call-remote-video').srcObject = activeCall.remoteStream;
+
+            pc.onicecandidate = (e) => { if (e.candidate) emitCall('call_ice', { candidate: e.candidate.toJSON() }); };
+            pc.ontrack = (e) => {
+                if (!activeCall) return;
+                activeCall.remoteStream.addTrack(e.track);
+                if (e.track.kind === 'video') document.getElementById('call-overlay').classList.add('has-remote-video');
+            };
+            pc.onconnectionstatechange = () => {
+                if (!activeCall || activeCall.pc !== pc) return;
+                const s = pc.connectionState;
+                if (s === 'connected') onCallConnected();
+                else if (s === 'failed') endCall('Connection failed', true);
+                else if (s === 'disconnected') {
+                    setCallStatus('Reconnecting…');
+                    clearTimeout(activeCall.dropTimer);
+                    activeCall.dropTimer = setTimeout(() => {
+                        if (activeCall && activeCall.pc === pc && pc.connectionState !== 'connected') endCall('Call dropped', true);
+                    }, 10000);
+                }
+            };
+            return pc;
+        }
+
+        async function getCallMedia(withVideo) {
+            return navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true },
+                video: withVideo ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
+            });
+        }
+
+        function attachLocalMedia(stream) {
+            activeCall.localStream = stream;
+            stream.getTracks().forEach(t => activeCall.pc.addTrack(t, stream));
+            const local = document.getElementById('call-local-video');
+            const hasVideo = stream.getVideoTracks().length > 0;
+            local.srcObject = hasVideo ? stream : null;
+            local.classList.toggle('hidden', !hasVideo);
+        }
+
+        async function flushPendingCandidates() {
+            const queued = activeCall.pendingCandidates.splice(0);
+            for (const c of queued) {
+                try { await activeCall.pc.addIceCandidate(c); } catch (_) {}
+            }
+        }
+
+        function mediaErrorMessage(err) {
+            if (err && err.name === 'NotAllowedError') return 'Microphone/camera permission was denied.';
+            if (err && err.name === 'NotFoundError') return 'No microphone or camera was found.';
+            return 'Could not access your microphone or camera.';
+        }
+
+        async function startCall(username, kind) {
+            if (!username) return;
+            if (!callsSupported()) { showToast('Calls need a secure (https) connection and a modern browser.', 'error'); return; }
+            if (!socket || !socket.connected) { showToast('Not connected to the server. Please try again.', 'error'); return; }
+            if (activeCall) { showToast('You are already in a call.', 'error'); return; }
+
+            activeCall = { id: newCallId(), peer: username, peerName: peerDisplayName(username), kind, role: 'caller',
+                           pendingCandidates: [], peerPic: profileData[username] && profileData[username].profilePicUrl };
+            showCallScreen('outgoing');
+            setCallStatus(kind === 'video' ? 'Starting video…' : 'Calling…');
+            try {
+                const stream = await getCallMedia(kind === 'video');
+                if (!activeCall) { stream.getTracks().forEach(t => t.stop()); return; }
+                await createPeerConnection();
+                attachLocalMedia(stream);
+                const offer = await activeCall.pc.createOffer();
+                await activeCall.pc.setLocalDescription(offer);
+                emitCall('call_offer', { kind, sdp: { type: offer.type, sdp: offer.sdp } });
+                setCallStatus('Calling…');
+                startRingtone(false);
+                activeCall.ringTimeout = setTimeout(() => endCall('No answer', true), CALL_RING_TIMEOUT_MS);
+            } catch (err) {
+                endCall(mediaErrorMessage(err), false);
+            }
+        }
+
+        function handleIncomingOffer(data) {
+            if (activeCall) {  // already on a call
+                socket.emit('call_busy', { to: data.from, call_id: data.call_id });
+                return;
+            }
+            if (!callsSupported()) {
+                socket.emit('call_reject', { to: data.from, call_id: data.call_id });
+                return;
+            }
+            const name = peerDisplayName(data.from, data.fromName);
+            activeCall = { id: data.call_id, peer: data.from, peerName: name, kind: data.kind, role: 'callee',
+                           offer: data.sdp, pendingCandidates: [], peerPic: data.fromPic };
+            showCallScreen('incoming');
+            setCallStatus(data.kind === 'video' ? 'Incoming video call' : 'Incoming voice call');
+            startRingtone(true);
+            showLocalNotification(name, data.kind === 'video' ? 'Incoming video call' : 'Incoming voice call', '/', 'call');
+            activeCall.ringTimeout = setTimeout(() => endCall('Missed call', false), CALL_RING_TIMEOUT_MS);
+        }
+
+        async function acceptCall(withVideo) {
+            if (!activeCall || activeCall.role !== 'callee' || activeCall.pc) return;
+            stopRingtone();
+            clearTimeout(activeCall.ringTimeout);
+            if (socket) socket.emit('call_accepted_elsewhere', { call_id: activeCall.id });
+            showCallScreen('active');
+            setCallStatus('Connecting…');
+            try {
+                const stream = await getCallMedia(withVideo && activeCall.kind === 'video');
+                if (!activeCall) { stream.getTracks().forEach(t => t.stop()); return; }
+                await createPeerConnection();
+                attachLocalMedia(stream);
+                await activeCall.pc.setRemoteDescription(activeCall.offer);
+                await flushPendingCandidates();
+                const answer = await activeCall.pc.createAnswer();
+                await activeCall.pc.setLocalDescription(answer);
+                emitCall('call_answer', { sdp: { type: answer.type, sdp: answer.sdp } });
+            } catch (err) {
+                endCall(mediaErrorMessage(err), true);
+            }
+        }
+
+        function declineCall() {
+            if (!activeCall) return;
+            emitCall('call_reject');
+            endCall('Call declined', false);
+        }
+
+        function hangUp() {
+            if (!activeCall) return;
+            endCall('Call ended', true);
+        }
+
+        function onCallConnected() {
+            stopRingtone();
+            clearTimeout(activeCall.ringTimeout);
+            clearTimeout(activeCall.dropTimer);
+            if (!activeCall.connectedAt) activeCall.connectedAt = Date.now();
+            clearInterval(activeCall.clock);
+            const tick = () => {
+                if (!activeCall) return;
+                const s = Math.floor((Date.now() - activeCall.connectedAt) / 1000);
+                setCallStatus(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+            };
+            tick();
+            activeCall.clock = setInterval(tick, 1000);
+        }
+
+        // Ends the call locally (and optionally tells the other side), then closes the screen.
+        function endCall(message, notifyPeer) {
+            if (!activeCall) return;
+            const call = activeCall;
+            if (notifyPeer) emitCall('call_end');
+            activeCall = null;
+            stopRingtone();
+            clearTimeout(call.ringTimeout); clearTimeout(call.dropTimer); clearInterval(call.clock);
+            if (call.pc) { call.pc.ontrack = null; call.pc.onicecandidate = null; call.pc.onconnectionstatechange = null; call.pc.close(); }
+            if (call.localStream) call.localStream.getTracks().forEach(t => t.stop());
+            document.getElementById('call-remote-video').srcObject = null;
+            document.getElementById('call-local-video').srcObject = null;
+            setCallStatus(message || 'Call ended');
+            document.getElementById('call-controls-incoming').classList.add('hidden');
+            document.getElementById('call-controls-active').classList.add('hidden');
+            setTimeout(() => {
+                if (activeCall) return; // a new call already started
+                const overlay = document.getElementById('call-overlay');
+                overlay.classList.add('hidden');
+                overlay.classList.remove('has-remote-video', 'video-call');
+                document.getElementById('call-avatar').style.removeProperty('--avatar-image');
+                resetCallButtons();
+            }, 1500);
+        }
+
+        function resetCallButtons() {
+            const mute = document.getElementById('call-mute-btn');
+            mute.setAttribute('aria-pressed', 'false'); mute.classList.remove('off');
+            mute.querySelector('i').className = 'fas fa-microphone';
+            const cam = document.getElementById('call-camera-btn');
+            cam.setAttribute('aria-pressed', 'false'); cam.classList.remove('off');
+            cam.querySelector('i').className = 'fas fa-video';
+        }
+
+        function toggleCallMute() {
+            if (!activeCall || !activeCall.localStream) return;
+            const track = activeCall.localStream.getAudioTracks()[0];
+            if (!track) return;
+            track.enabled = !track.enabled;
+            const btn = document.getElementById('call-mute-btn');
+            btn.classList.toggle('off', !track.enabled);
+            btn.setAttribute('aria-pressed', String(!track.enabled));
+            btn.setAttribute('aria-label', track.enabled ? 'Mute microphone' : 'Unmute microphone');
+            btn.querySelector('i').className = track.enabled ? 'fas fa-microphone' : 'fas fa-microphone-slash';
+        }
+
+        function toggleCallCamera() {
+            if (!activeCall || !activeCall.localStream) return;
+            const track = activeCall.localStream.getVideoTracks()[0];
+            if (!track) { showToast('Your camera is not part of this call.', 'error'); return; }
+            track.enabled = !track.enabled;
+            const btn = document.getElementById('call-camera-btn');
+            btn.classList.toggle('off', !track.enabled);
+            btn.setAttribute('aria-pressed', String(!track.enabled));
+            btn.setAttribute('aria-label', track.enabled ? 'Turn camera off' : 'Turn camera on');
+            btn.querySelector('i').className = track.enabled ? 'fas fa-video' : 'fas fa-video-slash';
+            document.getElementById('call-local-video').classList.toggle('camera-off', !track.enabled);
+        }
+
+        function attachCallHandlers(sock) {
+            const isCurrent = (data) => activeCall && data && data.call_id === activeCall.id && data.from === activeCall.peer;
+            sock.on('call_offer', handleIncomingOffer);
+            sock.on('call_answer', async (data) => {
+                if (!isCurrent(data) || activeCall.role !== 'caller' || !activeCall.pc) return;
+                stopRingtone();
+                clearTimeout(activeCall.ringTimeout);
+                setCallStatus('Connecting…');
+                try {
+                    await activeCall.pc.setRemoteDescription(data.sdp);
+                    await flushPendingCandidates();
+                } catch (_) { endCall('Connection failed', true); }
+            });
+            sock.on('call_ice', async (data) => {
+                if (!isCurrent(data) || !data.candidate) return;
+                if (activeCall.pc && activeCall.pc.remoteDescription) {
+                    try { await activeCall.pc.addIceCandidate(data.candidate); } catch (_) {}
+                } else {
+                    activeCall.pendingCandidates.push(data.candidate);
+                }
+            });
+            sock.on('call_end', (data) => { if (isCurrent(data)) endCall(activeCall.connectedAt ? 'Call ended' : 'Missed call', false); });
+            sock.on('call_reject', (data) => { if (isCurrent(data)) endCall('Call declined', false); });
+            sock.on('call_busy', (data) => { if (isCurrent(data)) endCall(`${activeCall.peerName} is on another call`, false); });
+            sock.on('call_unavailable', (data) => {
+                if (activeCall && data && data.call_id === activeCall.id) {
+                    endCall(data.reason === 'offline' ? `${activeCall.peerName} is offline` : 'User not available', false);
+                }
+            });
+            sock.on('call_handled', (data) => {  // answered on another of my devices
+                if (activeCall && data && data.call_id === activeCall.id && !activeCall.pc) endCall('Answered on another device', false);
+            });
+        }
+
+        // Hang up cleanly if the page is closed during a call
+        window.addEventListener('pagehide', () => { if (activeCall) emitCall(activeCall.pc ? 'call_end' : 'call_reject'); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && activeCall && activeCall.role === 'callee' && !activeCall.pc) declineCall();
+        });
+
+        // ---------- Home: "Suggested for you" ----------
+        function renderSuggested(users) {
+            const list = document.getElementById('suggested-list');
+            if (!list) return;
+            list.innerHTML = '';
+            const suggestions = (users || [])
+                .filter(u => u.username && u.username !== profileData.me.username && !followingList.includes(u.username))
+                .slice(0, 5);
+            if (suggestions.length === 0) {
+                list.innerHTML = '<li class="suggested-empty">You\u2019re following everyone for now.</li>';
+                return;
+            }
+            suggestions.forEach(u => {
+                const li = document.createElement('li');
+                li.className = 'suggested-item';
+
+                const who = document.createElement('a');
+                who.href = '#';
+                who.className = 'suggested-who';
+                who.onclick = (e) => { e.preventDefault(); showProfile(u.username); };
+                who.innerHTML = `<div class="profile-pic" data-user-pic-id="${u.username}"></div>`;
+                const text = document.createElement('div');
+                text.className = 'suggested-text';
+                const name = document.createElement('span');
+                name.className = 'suggested-name';
+                name.innerHTML = `${u.fullName} ${getRankIcon(u.rank)}`; // server-escaped name + our icon
+                const sub = document.createElement('span');
+                sub.className = 'suggested-sub';
+                sub.textContent = u.nationality ? `From ${decodeEntities(u.nationality)}` : 'New on APEX';
+                text.append(name, sub);
+                who.appendChild(text);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'suggested-follow';
+                btn.textContent = 'Follow';
+                btn.onclick = () => toggleFollow(btn, u.username);
+
+                li.append(who, btn);
+                list.appendChild(li);
+                updateProfilePictures(u.username);
+            });
+        }
+
+        // ---------- Messages: Direct / Lounges tabs + search ----------
+        let chatTab = 'direct';
+
+        function switchChatTab(tab) {
+            chatTab = tab;
+            const direct = tab === 'direct';
+            document.getElementById('chat-tab-direct').classList.toggle('active', direct);
+            document.getElementById('chat-tab-lounges').classList.toggle('active', !direct);
+            document.getElementById('chat-tab-direct').setAttribute('aria-selected', String(direct));
+            document.getElementById('chat-tab-lounges').setAttribute('aria-selected', String(!direct));
+            document.getElementById('chat-list').classList.toggle('hidden', !direct);
+            document.getElementById('chat-lounge-list').classList.toggle('hidden', direct);
+            document.getElementById('chat-search-input').placeholder = direct ? 'Search chats' : 'Search lounges';
+            if (!direct) renderChatLoungeList();
+            filterChatList();
+        }
+
+        function filterChatList() {
+            const q = document.getElementById('chat-search-input').value.trim().toLowerCase();
+            const listId = chatTab === 'direct' ? 'chat-list' : 'chat-lounge-list';
+            document.querySelectorAll(`#${listId} .chat-list-item`).forEach(li => {
+                li.style.display = !q || li.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        }
+
+        function renderChatLoungeList() {
+            const list = document.getElementById('chat-lounge-list');
+            list.innerHTML = '<li class="chat-list-empty">Loading lounges...</li>';
+            fetch(`${API_BASE_URL}/api/me/lounges`, { headers: { 'Authorization': `Bearer ${apiToken}` } })
+                .then(r => r.json())
+                .then(lounges => {
+                    list.innerHTML = '';
+                    if (!Array.isArray(lounges) || lounges.length === 0) {
+                        list.innerHTML = '<li class="chat-list-empty">You haven\u2019t joined any lounges yet.</li>';
+                        return;
+                    }
+                    lounges.forEach(l => {
+                        const li = document.createElement('li');
+                        li.className = 'chat-list-item';
+                        const pic = document.createElement('div');
+                        pic.className = 'profile-pic lounge-pic';
+                        if (l.cover_image) pic.style.setProperty('--avatar-image', `url(${l.cover_image})`);
+                        else pic.innerHTML = '<i class="fas fa-users" aria-hidden="true"></i>';
+                        const info = document.createElement('div');
+                        info.className = 'chat-info';
+                        info.innerHTML = `<span class="name">${l.name}</span><p class="snippet">${l.description || ''}</p>`;
+                        li.append(pic, info);
+                        li.onclick = () => showLounge(l.id, l.name);
+                        list.appendChild(li);
+                    });
+                    filterChatList();
+                })
+                .catch(() => { list.innerHTML = '<li class="chat-list-empty">Could not load lounges.</li>'; });
+        }
+
+        // ---------- Profile sharing ----------
+        function shareMyProfile() {
+            const url = `${window.location.origin}/?user=${encodeURIComponent(profileData.me.username)}`;
+            if (navigator.share) {
+                navigator.share({ title: 'APEX', text: 'Add me on APEX!', url }).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => showToast('Profile link copied.', 'success'));
+            } else {
+                prompt('Copy your profile link:', url);
+            }
+        }
+
+        function openProfileByUsername(username) {
+            if (username === profileData.me.username) { showProfile('me'); return; }
+            if (profileData[username] && profileData[username].name) { showProfile(username); return; }
+            fetch(`${API_BASE_URL}/api/user/${encodeURIComponent(username)}`, {
+                headers: { 'Authorization': `Bearer ${apiToken}` }
+            })
+            .then(r => r.ok ? r.json() : null)
+            .then(u => {
+                if (!u) { showToast('User not found.', 'error'); return; }
+                profileData[username] = { ...(profileData[username] || {}), name: u.fullName, username: u.username,
+                                          rank: u.rank, profilePicUrl: u.profile_pic };
+                showProfile(username);
+            })
+            .catch(() => {});
+        }
+
+        // ---------- Highlight the current section in the side / bottom nav ----------
+        function updateActiveNav(pageId) {
+            const section = {
+                'index-page': 'home', 'all-profiles-page': 'home', 'all-trending-page': 'home', 'all-lounges-page': 'home',
+                'messages-page': 'messages', 'lounge-page': 'messages',
+                'explore-page': 'explore', 'all-circuits-page': 'explore',
+                'notifications-page': 'notifications', 'terminal-page': 'terminal',
+                'profile-page': 'profile', 'edit-profile-page': 'profile',
+            }[pageId];
+            document.querySelectorAll('.side-nav [data-nav]').forEach(a => {
+                const on = a.dataset.nav === section;
+                a.classList.toggle('active', on);
+                if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
             });
         }
 
@@ -7348,6 +8431,8 @@
             socket.on('connect', () => {
                 console.log('Socket.IO connected successfully!');
             });
+            setupNotificationsAfterLogin(); // runs once per login
+            attachCallHandlers(socket);
 
             // This is the magic part: Listen for the 'dm_received' event from the server
             socket.on('dm_received', (data) => {
@@ -7379,10 +8464,17 @@
                 if (isViewingChat) {
                     renderChatMessages();
                 }
+
+                // Desktop notification when the app is in the background (desktop app / no web push)
+                const senderName = (profileData[senderUsername] && profileData[senderUsername].name) || senderUsername;
+                showLocalNotification(decodeEntities(senderName),
+                    data.message ? decodeEntities(data.message) : 'Sent you an image.',
+                    `/?dm=${encodeURIComponent(senderUsername)}`, `dm-${senderUsername}`);
             });
             socket.on('new_notification', () => {
                 // When the server tells us there's a new notification, refetch our list
                 fetchNotifications();
+                showLocalNotification('APEX', 'You have a new notification.', '/?view=notifications', 'notifications');
             });
             socket.on('new_lounge_message', (msg) => {
                 if (msg.channel_id === currentLoungeChannelId) {
@@ -7452,7 +8544,15 @@
                     <div class="profile-pic" data-user-pic-id="${currentChatRecipient}"></div>
                     <p>${user.name}</p>
                 </a>
-                <div id="chat-menu-container" style="margin-left: auto; position: relative;">
+                <div class="chat-call-buttons">
+                    <button type="button" class="chat-call-btn" onclick="startCall(currentChatRecipient, 'audio')" aria-label="Voice call" title="Voice call">
+                        <i class="fas fa-phone" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="chat-call-btn" onclick="startCall(currentChatRecipient, 'video')" aria-label="Video call" title="Video call">
+                        <i class="fas fa-video" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="chat-menu-container" style="position: relative;">
                     <div id="chat-menu-button" class="profile-menu-button" onclick="toggleChatMenu(event)">
                         <i class="fas fa-ellipsis-h"></i>
                     </div>
@@ -7764,8 +8864,8 @@
             updateProfilePictures(userKey);
 
             bioElement.textContent = 'Loading...';
-            schoolElement.textContent = 'Nationality: Loading...';
-            emailElement.textContent = 'Email: Loading...';
+            schoolElement.textContent = 'Loading...';
+            emailElement.textContent = '';
             gradeElement.textContent = '';
 
             const endpoint = isMe ? `${API_BASE_URL}/api/me` : `${API_BASE_URL}/api/user/${username}`;
@@ -7792,10 +8892,10 @@
                 }
                 bioElement.style.display = bioText.trim() ? 'block' : 'none';
 
-                schoolElement.textContent = `Nationality: ${fullProfile.nationality || 'Not specified'}`;
+                schoolElement.textContent = decodeEntities(fullProfile.nationality || 'Nationality not set');
                 // Email addresses are private: only shown on your own profile
                 if (fullProfile.email) {
-                    emailElement.textContent = `Email: ${fullProfile.email}`;
+                    emailElement.textContent = fullProfile.email;
                     emailElement.style.display = '';
                 } else {
                     emailElement.style.display = 'none';
@@ -7894,7 +8994,10 @@
                 const isFollowing = followingList.includes(userKey);
                 const buttonText = isFollowing ? 'Following' : 'Follow';
                 const buttonClass = isFollowing ? 'follow-btn following' : 'follow-btn';
-                const buttonsHTML = `<div class="profile-buttons"><button onclick="openChat('${userKey}')">Message</button><button class="${buttonClass}" onclick="toggleFollow(this, '${userKey}')">${buttonText}</button></div>`;
+                const buttonsHTML = `<div class="profile-buttons"><button class="${buttonClass}" onclick="toggleFollow(this, '${userKey}')">${buttonText}</button><button class="secondary-btn" onclick="openChat('${userKey}')"><i class="fas fa-paper-plane" aria-hidden="true"></i> Message</button></div>`;
+                card.insertAdjacentHTML('beforeend', buttonsHTML);
+            } else {
+                const buttonsHTML = `<div class="profile-buttons"><button class="secondary-btn" onclick="editProfile()"><i class="fas fa-cog" aria-hidden="true"></i> Edit Profile</button><button class="secondary-btn" onclick="shareMyProfile()"><i class="fas fa-share-alt" aria-hidden="true"></i> Share Profile</button></div>`;
                 card.insertAdjacentHTML('beforeend', buttonsHTML);
             }
         }
@@ -8229,16 +9332,56 @@
         /**
          * Takes a list of notification objects and renders them into the HTML list.
          */
+        let allNotifications = [];
+        let notificationFilter = 'all';
+        const NOTIFICATION_FILTERS = {
+            all: () => true,
+            follows: n => n.event_type === 'new_follower',
+            likes: n => n.event_type === 'new_like',
+            lounges: n => (n.event_type || '').startsWith('lounge_'),
+        };
+
+        function setNotificationFilter(filter) {
+            notificationFilter = filter;
+            document.querySelectorAll('.notif-chip').forEach(chip => {
+                const on = chip.dataset.filter === filter;
+                chip.classList.toggle('active', on);
+                chip.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            renderNotifications(allNotifications);
+        }
+
+        function notificationDateLabel(date) {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const day = new Date(date); day.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((today - day) / 86400000);
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return 'This week';
+            return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+        }
+
         function renderNotifications(notifications) {
+            allNotifications = notifications || [];
             const list = document.getElementById('notifications-list');
             list.innerHTML = '';
 
-            if (!notifications || notifications.length === 0) {
-                list.innerHTML = '<li>No new notifications.</li>';
+            const visible = allNotifications.filter(NOTIFICATION_FILTERS[notificationFilter] || NOTIFICATION_FILTERS.all);
+            if (visible.length === 0) {
+                list.innerHTML = '<li class="notif-empty">No notifications here yet.</li>';
                 return;
             }
 
-            notifications.forEach(notif => {
+            let lastLabel = null;
+            visible.forEach(notif => {
+                const label = notificationDateLabel(new Date(notif.timestamp));
+                if (label !== lastLabel) {
+                    const heading = document.createElement('li');
+                    heading.className = 'notif-date-heading';
+                    heading.textContent = label;
+                    list.appendChild(heading);
+                    lastLabel = label;
+                }
                 const item = document.createElement('li');
                 item.className = 'notification-item';
                 if (!notif.is_read) {
@@ -8268,13 +9411,24 @@
                 }
                 // --- END NEW ---
 
+                // "Follow back" for new followers you don't follow yet
+                let sideButton = '';
+                if (notif.event_type === 'new_follower' && notif.actor_username && !followingList.includes(notif.actor_username)) {
+                    sideButton = `<button type="button" class="follow-back-btn" onclick="event.stopPropagation(); toggleFollow(this, '${notif.actor_username}')">Follow back</button>`;
+                }
+                const typeIcon = { new_follower: 'fa-user-plus', new_like: 'fa-heart' }[notif.event_type]
+                    || ((notif.event_type || '').startsWith('lounge_') ? 'fa-couch' : 'fa-bell');
+
                 item.innerHTML = `
-                    <div class="profile-pic" data-user-pic-id="${notif.actor_username}"></div>
+                    <div class="notif-avatar">
+                        <div class="profile-pic" data-user-pic-id="${notif.actor_username}"></div>
+                        <span class="notif-type-icon"><i class="fas ${typeIcon}" aria-hidden="true"></i></span>
+                    </div>
                     <div class="notification-text">
-                        <p>${messageHtml}</p>
-                        <span class="message-timestamp">${formatTimestamp(new Date(notif.timestamp))}</span>
+                        <p>${messageHtml} <span class="message-timestamp">${formatTimestamp(new Date(notif.timestamp))}</span></p>
                         ${actionButtons}
                     </div>
+                    ${sideButton}
                 `;
                 list.appendChild(item);
 
@@ -8325,6 +9479,7 @@
             if (pageId === 'login-page') {
                 loggedIn = false; // Update login status if navigating to login
             }
+            updateActiveNav(pageId);
 
             // --- Reset SIGNUP Page Elements ---
             if (pageId === 'signup-page') {
@@ -10170,7 +11325,8 @@
         // Add this click listener to close menus when clicking elsewhere
         document.addEventListener('click', () => {
             document.querySelectorAll('.context-menu').forEach(menu => menu.remove());
-            document.getElementById('lounge-menu-dropdown').classList.add('hidden');
+            const loungeMenu = document.getElementById('lounge-menu-dropdown');
+            if (loungeMenu) loungeMenu.classList.add('hidden');
         });
 
         function handleTerminalCommand() {
@@ -10769,8 +11925,13 @@
             <div class="header-right"></div>
         </header>
         <main>
-            <div class="content-section">
-                <h2>Notifications</h2>
+            <div class="content-section notifications-panel">
+                <div class="notif-filters" role="tablist" aria-label="Filter notifications">
+                    <button type="button" class="notif-chip active" data-filter="all" onclick="setNotificationFilter('all')">All</button>
+                    <button type="button" class="notif-chip" data-filter="follows" onclick="setNotificationFilter('follows')"><i class="fas fa-user-plus" aria-hidden="true"></i> Follows</button>
+                    <button type="button" class="notif-chip" data-filter="likes" onclick="setNotificationFilter('likes')"><i class="fas fa-heart" aria-hidden="true"></i> Likes</button>
+                    <button type="button" class="notif-chip" data-filter="lounges" onclick="setNotificationFilter('lounges')"><i class="fas fa-couch" aria-hidden="true"></i> Lounges</button>
+                </div>
                 <ul id="notifications-list" class="notifications-list">
                     <!-- Notifications will be loaded here by JavaScript -->
                 </ul>

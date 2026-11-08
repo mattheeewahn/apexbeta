@@ -342,7 +342,9 @@ import html as _html
 
 # JSON keys that must NOT be HTML-escaped (credentials, emails, dates, image payloads).
 #   "content" = article body: only admins/moderators can post it (trusted HTML).
-_RAW_JSON_KEYS = {"password", "email", "dob", "image", "coverImage", "profilePic", "token", "content"}
+#   "endpoint"/"p256dh"/"auth" = web push subscription (validated separately).
+_RAW_JSON_KEYS = {"password", "email", "dob", "image", "coverImage", "profilePic", "token", "content",
+                  "endpoint", "p256dh", "auth"}
 _IMAGE_DATA_URL_RE = re.compile(r'^data:image/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$')
 MAX_CHAT_IMAGE_CHARS = 6 * 1024 * 1024  # ~4.5MB of raw image data
 
@@ -3125,6 +3127,9 @@ def handle_connect():
         return False
 
     socket_connections[request.sid] = token_str
+    with _online_lock:
+        socket_user_ids[request.sid] = user.id
+        online_users.setdefault(user.id, set()).add(request.sid)
 
     join_room(f"user_{user.id}")
     emit("system", {"msg": f"Connected as {user.email}"})
@@ -3134,6 +3139,134 @@ def handle_connect():
 def handle_disconnect_event():
     if request.sid in socket_connections:
         del socket_connections[request.sid]
+    with _online_lock:
+        uid = socket_user_ids.pop(request.sid, None)
+        if uid is not None:
+            sids = online_users.get(uid, set())
+            sids.discard(request.sid)
+            if not sids:
+                online_users.pop(uid, None)
+
+
+# -------------------------------------------------
+# 1:1 voice / video calls (WebRTC).
+# The media goes directly between the two browsers; the server only relays the
+# small signaling messages (offer / answer / ICE candidates / hang-up).
+# -------------------------------------------------
+online_users = {}      # user_id -> set of socket ids
+socket_user_ids = {}   # socket id -> user_id
+_online_lock = threading.Lock()
+_CALL_ID_RE = re.compile(r'^[A-Za-z0-9_-]{8,64}$')
+MAX_SDP_CHARS = 20000
+
+
+def _ice_servers():
+    servers = [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]}]
+    # Optional TURN relay for strict networks (e.g. some mobile carriers).
+    turn_url = os.environ.get("TURN_URL", "").strip()
+    if turn_url:
+        servers.append({"urls": [u.strip() for u in turn_url.split(",") if u.strip()],
+                        "username": os.environ.get("TURN_USERNAME", ""),
+                        "credential": os.environ.get("TURN_CREDENTIAL", "")})
+    return servers
+
+
+@app.get("/api/call/config")
+def call_config():
+    if not auth_user():
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"iceServers": _ice_servers()})
+
+
+def _valid_sdp(sdp, expected_type):
+    return (isinstance(sdp, dict) and sdp.get("type") == expected_type
+            and isinstance(sdp.get("sdp"), str) and 0 < len(sdp["sdp"]) <= MAX_SDP_CHARS)
+
+
+def _notify_missed_call(user_id, caller_name, kind):
+    with app.app_context():
+        try:
+            send_push_to_user(user_id, {"title": caller_name, "body": f"Missed {kind} call", "tag": "call", "url": "/"})
+        finally:
+            db.session.remove()
+
+
+def _relay_call_signal(event, data):
+    user = user_from_token(socket_connections.get(request.sid))
+    if not user or not isinstance(data, dict):
+        return
+    call_id = str(data.get("call_id") or "")
+    if not _CALL_ID_RE.match(call_id):
+        return
+    target = User.query.filter_by(username=str(data.get("to") or "")).first()
+    if not target or target.id == user.id or target.is_banned or target.username is None:
+        if event == "call_offer":
+            emit("call_unavailable", {"call_id": call_id, "reason": "not_found"})
+        return
+
+    payload = {"from": user.username, "call_id": call_id}
+    if event == "call_offer":
+        if not _valid_sdp(data.get("sdp"), "offer"):
+            return
+        kind = "video" if data.get("kind") == "video" else "audio"
+        with _online_lock:
+            target_online = bool(online_users.get(target.id))
+        if not target_online:
+            emit("call_unavailable", {"call_id": call_id, "reason": "offline"})
+            _push_executor.submit(_notify_missed_call, target.id,
+                                  _html.unescape(user.full_name or user.username), kind)
+            return
+        payload.update(kind=kind, sdp=data["sdp"], fromName=user.full_name, fromPic=user.profile_pic)
+    elif event == "call_answer":
+        if not _valid_sdp(data.get("sdp"), "answer"):
+            return
+        payload["sdp"] = data["sdp"]
+    elif event == "call_ice":
+        cand = data.get("candidate")
+        if not isinstance(cand, dict) or len(str(cand.get("candidate", ""))) > 2000:
+            return
+        payload["candidate"] = {"candidate": str(cand.get("candidate", "")),
+                                "sdpMid": cand.get("sdpMid"), "sdpMLineIndex": cand.get("sdpMLineIndex")}
+    emit(event, payload, room=f"user_{target.id}")
+
+
+@socketio.on("call_offer")
+def handle_call_offer(data):
+    _relay_call_signal("call_offer", data)
+
+
+@socketio.on("call_answer")
+def handle_call_answer(data):
+    _relay_call_signal("call_answer", data)
+
+
+@socketio.on("call_ice")
+def handle_call_ice(data):
+    _relay_call_signal("call_ice", data)
+
+
+@socketio.on("call_end")
+def handle_call_end(data):
+    _relay_call_signal("call_end", data)
+
+
+@socketio.on("call_reject")
+def handle_call_reject(data):
+    _relay_call_signal("call_reject", data)
+
+
+@socketio.on("call_busy")
+def handle_call_busy(data):
+    _relay_call_signal("call_busy", data)
+
+
+@socketio.on("call_accepted_elsewhere")
+def handle_call_accepted_elsewhere(data):
+    # Tell the user's other open tabs/devices to stop ringing.
+    user = user_from_token(socket_connections.get(request.sid))
+    if not user or not isinstance(data, dict) or not _CALL_ID_RE.match(str(data.get("call_id") or "")):
+        return
+    emit("call_handled", {"call_id": data["call_id"]}, room=f"user_{user.id}", include_self=False)
 
 
 # In server.py, update the /api/user/<username> endpoint:
@@ -3213,6 +3346,7 @@ def get_users():
             "rank": user.rank,
             "profile_pic": user.profile_pic,
             "account_type": user.account_type,
+            "nationality": user.nationality,
             "is_birthday": is_users_birthday(user.dob),
             "show_birthday": user.show_birthday
         }
@@ -3927,6 +4061,320 @@ def admin_broadcast():
 
 
 # -------------------------------------------------
+# Web Push notifications
+#   Browsers / installed PWAs / the Android app subscribe via /api/push/subscribe.
+#   Whenever a DM or a Notification row is committed, a push is sent to the receiver
+#   (in a background thread, so requests are never slowed down).
+#   VAPID keys come from VAPID_PRIVATE_KEY / VAPID_PUBLIC_KEY, or are generated once and
+#   stored in the database.
+# -------------------------------------------------
+import json as _json
+from concurrent.futures import ThreadPoolExecutor
+from sqlalchemy import event as _sa_event
+from sqlalchemy.orm import Session as _SASession, object_session
+
+try:
+    from pywebpush import webpush, WebPushException
+except ImportError:  # push simply stays disabled if the package is missing
+    webpush = None
+    WebPushException = Exception
+
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:support@prototype-neo.com")
+_push_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="webpush")
+_vapid_keys = {}
+_B64URL_RE = re.compile(r'^[A-Za-z0-9_-]+=*$')
+
+
+class PushSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    endpoint = db.Column(db.String(1000), unique=True, nullable=False)
+    p256dh = db.Column(db.String(255), nullable=False)
+    auth = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+def _b64url(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def load_vapid_keys():
+    """Load VAPID keys from env, else from the DB, else generate and store them (once)."""
+    priv, pub = os.environ.get("VAPID_PRIVATE_KEY", ""), os.environ.get("VAPID_PUBLIC_KEY", "")
+    if not (priv and pub):
+        a_priv, a_pub = StoredAsset.query.get("vapid_private"), StoredAsset.query.get("vapid_public")
+        if a_priv and a_pub:
+            priv, pub = a_priv.webp_base64, a_pub.webp_base64
+        else:
+            from cryptography.hazmat.primitives.asymmetric import ec
+            from cryptography.hazmat.primitives import serialization
+            key = ec.generate_private_key(ec.SECP256R1())
+            priv = _b64url(key.private_numbers().private_value.to_bytes(32, "big"))
+            pub = _b64url(key.public_key().public_bytes(serialization.Encoding.X962,
+                                                         serialization.PublicFormat.UncompressedPoint))
+            db.session.add_all([StoredAsset(key="vapid_private", webp_base64=priv),
+                                StoredAsset(key="vapid_public", webp_base64=pub)])
+            db.session.commit()
+            print("Generated VAPID keys for web push.")
+    _vapid_keys.update(private=priv, public=pub)
+
+
+def _push_text(value, limit=140):
+    text = _html.unescape(value or "").strip()
+    return text if len(text) <= limit else text[:limit - 1] + "…"
+
+
+def _build_dm_push(dm):
+    sender = dm.sender
+    name = _push_text(sender.full_name or sender.username, 60) if sender else "APEX"
+    body = _push_text(dm.message) if dm.message else "Sent you an image."
+    return dm.receiver_id, {"title": name, "body": body, "tag": f"dm-{dm.sender_id}",
+                            "url": f"/?dm={sender.username}" if sender else "/"}
+
+
+_NOTIF_TEXT = {
+    "new_follower": "{actor} started following you.",
+    "new_like": "{actor} liked your post.",
+    "lounge_invite": "{actor} invited you to a lounge.",
+    "lounge_access_request": "{actor} wants to join your lounge.",
+    "lounge_access_accepted": "{actor} accepted your lounge request.",
+}
+
+
+def _build_notification_push(n):
+    actor = n.actor.username if n.actor and n.actor.username else "Someone"
+    body = _NOTIF_TEXT.get(n.event_type, "You have a new notification.").format(actor=actor)
+    return n.user_id, {"title": "APEX", "body": body, "tag": f"notif-{n.id}", "url": "/?view=notifications"}
+
+
+def _deliver_push(kind, obj_id):
+    """Runs in a worker thread: build the payload and send it to every device of the receiver."""
+    if webpush is None:
+        return
+    with app.app_context():
+        try:
+            obj = (DM if kind == "dm" else Notification).query.get(obj_id)
+            if not obj:
+                return
+            if kind == "dm":
+                if obj.sender_id == obj.receiver_id:
+                    return
+                user_id, payload = _build_dm_push(obj)
+            else:
+                user_id, payload = _build_notification_push(obj)
+            receiver = User.query.get(user_id)
+            if not receiver or receiver.is_banned or receiver.username is None:
+                return
+            send_push_to_user(user_id, payload)
+        except Exception as e:
+            print(f"[push] failed to send {kind} #{obj_id}: {type(e).__name__}")
+        finally:
+            db.session.remove()
+
+
+def send_push_to_user(user_id, payload):
+    """Send one payload to all of a user's subscriptions. Returns the number delivered.
+    Must be called inside an app context."""
+    if webpush is None or not _vapid_keys.get("private"):
+        return 0
+    data = _json.dumps(payload)
+    delivered = 0
+    for sub in PushSubscription.query.filter_by(user_id=user_id).all():
+        try:
+            webpush(subscription_info={"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}},
+                    data=data, vapid_private_key=_vapid_keys["private"],
+                    vapid_claims={"sub": VAPID_SUBJECT}, ttl=86400, timeout=10)
+            delivered += 1
+        except WebPushException as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status in (404, 410):  # the browser dropped this subscription
+                db.session.delete(sub)
+                db.session.commit()
+            else:
+                print(f"[push] delivery error {status}")
+        except Exception as e:
+            print(f"[push] delivery error {type(e).__name__}")
+    return delivered
+
+
+# Queue pushes when DM / Notification rows are inserted, send them only after the commit succeeds.
+@_sa_event.listens_for(DM, "after_insert")
+def _queue_dm_push(mapper, connection, target):
+    sess = object_session(target)
+    if sess is not None:
+        sess.info.setdefault("pending_push", []).append(("dm", target.id))
+
+
+@_sa_event.listens_for(Notification, "after_insert")
+def _queue_notification_push(mapper, connection, target):
+    sess = object_session(target)
+    if sess is not None:
+        sess.info.setdefault("pending_push", []).append(("notification", target.id))
+
+
+@_sa_event.listens_for(_SASession, "after_commit")
+def _flush_push_queue(session):
+    for kind, obj_id in session.info.pop("pending_push", []):
+        _push_executor.submit(_deliver_push, kind, obj_id)
+
+
+@_sa_event.listens_for(_SASession, "after_soft_rollback")
+def _drop_push_queue(session, previous_transaction):
+    session.info.pop("pending_push", None)
+
+
+@app.get("/api/push/public-key")
+def push_public_key():
+    if webpush is None or not _vapid_keys.get("public"):
+        return jsonify({"error": "Push notifications are not available on this server."}), 503
+    return jsonify({"key": _vapid_keys["public"]})
+
+
+@app.post("/api/push/subscribe")
+@rate_limit(30, 3600)
+def push_subscribe():
+    user = auth_user()
+    if not user:
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    endpoint = str(data.get("endpoint") or "")
+    keys = data.get("keys") if isinstance(data.get("keys"), dict) else {}
+    p256dh, auth_key = str(keys.get("p256dh") or ""), str(keys.get("auth") or "")
+    if not endpoint.startswith("https://") or len(endpoint) > 1000:
+        return jsonify({"error": "Invalid subscription endpoint."}), 400
+    if not (_B64URL_RE.match(p256dh) and _B64URL_RE.match(auth_key)) or len(p256dh) > 255 or len(auth_key) > 255:
+        return jsonify({"error": "Invalid subscription keys."}), 400
+
+    sub = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if sub:  # same browser, maybe a different account now
+        sub.user_id, sub.p256dh, sub.auth = user.id, p256dh, auth_key
+    else:
+        db.session.add(PushSubscription(user_id=user.id, endpoint=endpoint, p256dh=p256dh, auth=auth_key))
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@app.post("/api/push/unsubscribe")
+def push_unsubscribe():
+    user = auth_user()
+    if not user:
+        return jsonify({"error": "unauthorized"}), 401
+    endpoint = str((request.get_json(force=True, silent=True) or {}).get("endpoint") or "")
+    PushSubscription.query.filter_by(endpoint=endpoint, user_id=user.id).delete()
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@app.post("/api/push/test")
+@rate_limit(10, 3600)
+def push_test():
+    user = auth_user()
+    if not user:
+        return jsonify({"error": "unauthorized"}), 401
+    sent = send_push_to_user(user.id, {"title": "APEX", "body": "Notifications are working.", "tag": "test", "url": "/"})
+    return jsonify({"ok": True, "delivered": sent})
+
+
+# ---------------- PWA files (installable web app + service worker) ----------------
+APP_NAME_SHORT = os.environ.get("APP_NAME", "APEX")
+ANDROID_PACKAGE = os.environ.get("ANDROID_PACKAGE", "org.horizonatlas.apex")
+# SHA-256 fingerprint of the Android app's signing certificate (android/apex-release.p12).
+# Lets the Android app open full-screen without a browser address bar.
+ANDROID_CERT_SHA256 = os.environ.get(
+    "ANDROID_CERT_SHA256",
+    "1D:24:C7:BB:53:92:A8:E0:1F:08:79:58:C0:36:97:71:33:00:27:7C:BA:F9:ED:64:72:22:41:CB:9F:34:3D:AF")
+_icon_cache = {}
+
+
+@app.get("/sw.js")
+def service_worker():
+    resp = make_response(send_from_directory(BASE_DIR, "sw.js"))
+    resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    return resp
+
+
+@app.get("/manifest.webmanifest")
+def web_manifest():
+    resp = make_response(_json.dumps({
+        "name": APP_NAME_SHORT, "short_name": APP_NAME_SHORT, "id": "/", "start_url": "/", "scope": "/",
+        "display": "standalone", "background_color": "#f8f9fa", "theme_color": "#ffffff",
+        "description": "Make friends from around the world.",
+        "icons": [
+            {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }))
+    resp.headers["Content-Type"] = "application/manifest+json"
+    return resp
+
+
+@app.get("/icons/<name>.png")
+def app_icon(name):
+    sizes = {"icon-192": (192, 0.92), "icon-512": (512, 0.92), "maskable-512": (512, 0.62), "apple-touch-icon": (180, 0.86)}
+    if name not in sizes:
+        return jsonify({"error": "not found"}), 404
+    if name not in _icon_cache:
+        size, fill = sizes[name]
+        with Image.open(os.path.join(BASE_DIR, "apex.png")) as src:
+            src = src.convert("RGBA")
+            src.thumbnail((int(size * fill), int(size * fill)), Image.LANCZOS)
+            canvas = Image.new("RGBA", (size, size), (255, 255, 255, 255))
+            canvas.alpha_composite(src, ((size - src.width) // 2, (size - src.height) // 2))
+            buf = io.BytesIO()
+            canvas.convert("RGB").save(buf, format="PNG", optimize=True)
+            _icon_cache[name] = buf.getvalue()
+    resp = make_response(_icon_cache[name])
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+@app.get("/assets/<name>.png")
+def transparent_logo(name):
+    """Logos with the white background removed, for the dark theme."""
+    sources = {"logo-text": "apex2.png", "logo-mark": "apex.png"}
+    if name not in sources:
+        return jsonify({"error": "not found"}), 404
+    key = "clear-" + name
+    if key not in _icon_cache:
+        with Image.open(os.path.join(BASE_DIR, sources[name])) as src:
+            img = src.convert("RGBA")
+        if img.getextrema()[3][0] == 255:  # no transparency yet: key out the white background
+            px = img.load()
+            for y in range(img.height):
+                for x in range(img.width):
+                    r, g, b, a = px[x, y]
+                    lightness = min(r, g, b)
+                    if lightness >= 245:
+                        px[x, y] = (r, g, b, 0)
+                    elif lightness >= 200:  # soften the anti-aliased edge
+                        px[x, y] = (r, g, b, int(a * (245 - lightness) / 45))
+        bbox = img.getbbox()
+        if bbox:
+            img = img.crop(bbox)
+        img.thumbnail((640, 640), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=True)
+        _icon_cache[key] = buf.getvalue()
+    resp = make_response(_icon_cache[key])
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+@app.get("/.well-known/assetlinks.json")
+def asset_links():
+    return jsonify([{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {"namespace": "android_app", "package_name": ANDROID_PACKAGE,
+                   "sha256_cert_fingerprints": [ANDROID_CERT_SHA256]},
+    }])
+
+
+# -------------------------------------------------
 def migrate_legacy_schema():
     """Rename the legacy user.school column to user.nationality on existing databases (keeps data)."""
     from sqlalchemy import inspect, text
@@ -3955,6 +4403,7 @@ def init_app_data():
             db.session.commit()
 
         bootstrap_admin()
+        load_vapid_keys()
 
 
 def bootstrap_admin():
