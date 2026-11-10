@@ -732,8 +732,11 @@ def get_dm_history(username):
     other_user = User.query.filter_by(username=username).first()
     if not other_user: return jsonify({"error": "User not found"}), 404
 
-    DM.query.filter_by(sender_id=other_user.id, receiver_id=user.id, is_read=False).update({"is_read": True})
+    newly_read = DM.query.filter_by(sender_id=other_user.id, receiver_id=user.id, is_read=False).update({"is_read": True})
     db.session.commit()
+    if newly_read:
+        # Read receipt: tell the other person their messages were seen.
+        socketio.emit("dm_read", {"by": user.username}, room=f"user_{other_user.id}")
 
     # Find conversation theme
     user1_id, user2_id = sorted((user.id, other_user.id))
@@ -782,6 +785,7 @@ def get_dm_history(username):
             "text": msg.message,
             "image": msg.image,
             "is_deleted": msg.is_deleted,
+            "is_read": bool(msg.is_read),
             "time": msg.created_at.isoformat() + "Z",
             "reactions": reactions_map.get(msg.id, {})  # Get reactions from our map
         } for msg in messages
@@ -3127,15 +3131,193 @@ def handle_connect():
         return False
 
     socket_connections[request.sid] = token_str
+    with _online_lock:
+        socket_user_ids[request.sid] = user.id
+        came_online = not online_users.get(user.id)
+        online_users.setdefault(user.id, set()).add(request.sid)
 
     join_room(f"user_{user.id}")
     emit("system", {"msg": f"Connected as {user.email}"})
+    if came_online and user.username:
+        socketio.emit("presence", {"username": user.username, "online": True})
 
 
 @socketio.on('disconnect')
 def handle_disconnect_event():
     if request.sid in socket_connections:
         del socket_connections[request.sid]
+    went_offline = None
+    with _online_lock:
+        uid = socket_user_ids.pop(request.sid, None)
+        if uid is not None:
+            sids = online_users.get(uid, set())
+            sids.discard(request.sid)
+            if not sids:
+                online_users.pop(uid, None)
+                last_seen[uid] = datetime.utcnow()
+                went_offline = uid
+    if went_offline is not None:
+        u = User.query.get(went_offline)
+        if u and u.username:
+            socketio.emit("presence", {"username": u.username, "online": False,
+                                       "last_seen": last_seen[went_offline].isoformat() + "Z"})
+
+
+# -------------------------------------------------
+# Online status + read receipts
+# -------------------------------------------------
+last_seen = {}  # user_id -> datetime (UTC) of when their last connection closed (in memory)
+
+
+@app.get("/api/presence")
+def get_presence():
+    if not auth_user():
+        return jsonify({"error": "unauthorized"}), 401
+    with _online_lock:
+        online_ids = list(online_users.keys())
+        seen = dict(last_seen)
+    ids = set(online_ids) | set(seen.keys())
+    users = {u.id: u.username for u in User.query.filter(User.id.in_(ids)).all() if u.username} if ids else {}
+    return jsonify({
+        "online": [users[i] for i in online_ids if i in users],
+        "last_seen": {users[i]: t.isoformat() + "Z" for i, t in seen.items() if i in users and i not in online_ids},
+    })
+
+
+@socketio.on("mark_dm_read")
+def handle_mark_dm_read(data):
+    """The receiver is looking at the chat: mark messages from `from` as read and tell the sender."""
+    user = user_from_token(socket_connections.get(request.sid))
+    if not user or not isinstance(data, dict):
+        return
+    other = User.query.filter_by(username=str(data.get("from") or "")).first()
+    if not other or other.id == user.id:
+        return
+    updated = DM.query.filter_by(sender_id=other.id, receiver_id=user.id, is_read=False).update({"is_read": True})
+    db.session.commit()
+    if updated:
+        emit("dm_read", {"by": user.username}, room=f"user_{other.id}")
+
+
+# -------------------------------------------------
+# 1:1 voice / video calls (WebRTC).
+# The media goes directly between the two browsers; the server only relays the
+# small signaling messages (offer / answer / ICE candidates / hang-up).
+# -------------------------------------------------
+online_users = {}      # user_id -> set of socket ids
+socket_user_ids = {}   # socket id -> user_id
+_online_lock = threading.Lock()
+_CALL_ID_RE = re.compile(r'^[A-Za-z0-9_-]{8,64}$')
+MAX_SDP_CHARS = 20000
+
+
+def _ice_servers():
+    servers = [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]}]
+    # Optional TURN relay for strict networks (e.g. some mobile carriers).
+    turn_url = os.environ.get("TURN_URL", "").strip()
+    if turn_url:
+        servers.append({"urls": [u.strip() for u in turn_url.split(",") if u.strip()],
+                        "username": os.environ.get("TURN_USERNAME", ""),
+                        "credential": os.environ.get("TURN_CREDENTIAL", "")})
+    return servers
+
+
+@app.get("/api/call/config")
+def call_config():
+    if not auth_user():
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"iceServers": _ice_servers()})
+
+
+def _valid_sdp(sdp, expected_type):
+    return (isinstance(sdp, dict) and sdp.get("type") == expected_type
+            and isinstance(sdp.get("sdp"), str) and 0 < len(sdp["sdp"]) <= MAX_SDP_CHARS)
+
+
+def _notify_missed_call(user_id, caller_name, kind):
+    with app.app_context():
+        try:
+            send_push_to_user(user_id, {"title": caller_name, "body": f"Missed {kind} call", "tag": "call", "url": "/"})
+        finally:
+            db.session.remove()
+
+
+def _relay_call_signal(event, data):
+    user = user_from_token(socket_connections.get(request.sid))
+    if not user or not isinstance(data, dict):
+        return
+    call_id = str(data.get("call_id") or "")
+    if not _CALL_ID_RE.match(call_id):
+        return
+    target = User.query.filter_by(username=str(data.get("to") or "")).first()
+    if not target or target.id == user.id or target.is_banned or target.username is None:
+        if event == "call_offer":
+            emit("call_unavailable", {"call_id": call_id, "reason": "not_found"})
+        return
+
+    payload = {"from": user.username, "call_id": call_id}
+    if event == "call_offer":
+        if not _valid_sdp(data.get("sdp"), "offer"):
+            return
+        kind = "video" if data.get("kind") == "video" else "audio"
+        with _online_lock:
+            target_online = bool(online_users.get(target.id))
+        if not target_online:
+            emit("call_unavailable", {"call_id": call_id, "reason": "offline"})
+            _push_executor.submit(_notify_missed_call, target.id,
+                                  _html.unescape(user.full_name or user.username), kind)
+            return
+        payload.update(kind=kind, sdp=data["sdp"], fromName=user.full_name, fromPic=user.profile_pic)
+    elif event == "call_answer":
+        if not _valid_sdp(data.get("sdp"), "answer"):
+            return
+        payload["sdp"] = data["sdp"]
+    elif event == "call_ice":
+        cand = data.get("candidate")
+        if not isinstance(cand, dict) or len(str(cand.get("candidate", ""))) > 2000:
+            return
+        payload["candidate"] = {"candidate": str(cand.get("candidate", "")),
+                                "sdpMid": cand.get("sdpMid"), "sdpMLineIndex": cand.get("sdpMLineIndex")}
+    emit(event, payload, room=f"user_{target.id}")
+
+
+@socketio.on("call_offer")
+def handle_call_offer(data):
+    _relay_call_signal("call_offer", data)
+
+
+@socketio.on("call_answer")
+def handle_call_answer(data):
+    _relay_call_signal("call_answer", data)
+
+
+@socketio.on("call_ice")
+def handle_call_ice(data):
+    _relay_call_signal("call_ice", data)
+
+
+@socketio.on("call_end")
+def handle_call_end(data):
+    _relay_call_signal("call_end", data)
+
+
+@socketio.on("call_reject")
+def handle_call_reject(data):
+    _relay_call_signal("call_reject", data)
+
+
+@socketio.on("call_busy")
+def handle_call_busy(data):
+    _relay_call_signal("call_busy", data)
+
+
+@socketio.on("call_accepted_elsewhere")
+def handle_call_accepted_elsewhere(data):
+    # Tell the user's other open tabs/devices to stop ringing.
+    user = user_from_token(socket_connections.get(request.sid))
+    if not user or not isinstance(data, dict) or not _CALL_ID_RE.match(str(data.get("call_id") or "")):
+        return
+    emit("call_handled", {"call_id": data["call_id"]}, room=f"user_{user.id}", include_self=False)
 
 
 # In server.py, update the /api/user/<username> endpoint:
